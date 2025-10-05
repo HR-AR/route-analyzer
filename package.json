@@ -10,6 +10,7 @@
     "start": "tsx src/cli.ts",
     "time-breakdown": "tsx src/time-breakdown.ts",
     "store-analysis": "tsx src/store-analysis.ts",
+    "returns-breakdown": "tsx src/returns-breakdown.ts",
     "build": "tsc",
     "lint": "echo 'Linting...' && exit 0",
     "test": "tsx --test tests/**/*.test.ts",
