@@ -1,0 +1,34 @@
+node_modules/
+dist/
+build/
+coverage/
+.env*
+*.local.md
+tmp/
+venv/
+__pycache__/
+*.pyc
+
+# Output files (stay local)
+time-breakdown-report.txt
+time-breakdown-data.json
+store-*-analysis.txt
+store-*-data.json
+demo-output.json
+*.csv
+
+# Communication files (stay local)
+EMAIL-TEMPLATE.md
+SLACK-MESSAGE-*.md
+DELIVERABLES-SUMMARY.md
+DISTRIBUTION-CHECKLIST.md
+GITHUB-SETUP.md
+STORE-2242-SUMMARY.md
+SUMMARY.md
+
+# Distribution packages
+route-analyzer-distribution/
+route-analyzer-dist.tar.gz
+route-analyzer-dist.zip
+GITHUB-README.md
+my-new-project/
