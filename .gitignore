@@ -1,15 +1,20 @@
+# Dependencies
 node_modules/
-dist/
-build/
-coverage/
-.env*
-*.local.md
-tmp/
 venv/
 __pycache__/
 *.pyc
 
-# Output files (stay local - ALL analysis results)
+# Build outputs
+dist/
+build/
+coverage/
+
+# Environment
+.env*
+*.local.md
+tmp/
+
+# Analysis outputs (stay local)
 time-breakdown-report.txt
 time-breakdown-data.json
 store-*-analysis.txt
@@ -27,8 +32,6 @@ DISTRIBUTION-CHECKLIST.md
 GITHUB-SETUP.md
 STORE-2242-SUMMARY.md
 SUMMARY.md
-
-# Analysis documentation (stay local)
 STORE-*-PERFORMANCE-REVIEW.md
 GIT-PUSH-INSTRUCTIONS.txt
 PUSH-SUCCESS-SUMMARY.txt
@@ -39,3 +42,14 @@ route-analyzer-dist.tar.gz
 route-analyzer-dist.zip
 GITHUB-README.md
 my-new-project/
+
+# Context engineering (stay local - not needed by users)
+CLAUDE.md
+examples/
+notes/
+docs/prd/
+docs/prompts/
+docs/prps/
+scripts/context-engine.mjs
+create-distribution.sh
+.github/
