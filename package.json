@@ -7,13 +7,13 @@
     "route-analyzer": "dist/cli.js"
   },
   "scripts": {
-    "prestart": "npm run build",
     "start": "node dist/cli.js",
-    "time-breakdown": "npm run build && node dist/time-breakdown.js",
-    "store-analysis": "npm run build && node dist/store-analysis.js",
-    "returns-breakdown": "npm run build && node dist/returns-breakdown.js",
+    "time-breakdown": "node dist/time-breakdown.js",
+    "store-analysis": "node dist/store-analysis.js",
+    "returns-breakdown": "node dist/returns-breakdown.js",
     "build": "tsc",
-    "postinstall": "python3 -m venv venv && ./venv/bin/python3 -m pip install -r requirements.txt && npm run build",
+    "ui": "node dist/server.js",
+    "postinstall": "node scripts/setup-python.js && npm run build",
     "lint": "echo 'Linting...' && exit 0",
     "test": "tsx --test tests/**/*.test.ts",
     "validate": "npm run lint && npm test && npm run build",
@@ -23,6 +23,10 @@
     "sync": "node scripts/context-engine.mjs sync"
   },
   "dependencies": {
+    "@types/express": "^5.0.3",
+    "@types/multer": "^2.0.0",
+    "express": "^4.21.2",
+    "multer": "^2.0.2",
     "zod": "^3.22.4"
   },
   "devDependencies": {

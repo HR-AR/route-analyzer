@@ -40,7 +40,14 @@ Example:
 npm run store-analysis -- 2242 weekly-data.csv
 ```
 
-**Basic Route Analysis**
+**Web Interface (Easiest Method)**
+```bash
+# Start the web server
+npm run ui
+```
+Then open your web browser to `http://localhost:3000`. You can upload your CSV file and select the analysis type directly from the page.
+
+**Basic Route Analysis (Command Line)**
 ```bash
 npm start -- /path/to/data.csv
 ```
@@ -118,6 +125,7 @@ Your CSV must include these columns:
 
 - **[TEAM-README.md](TEAM-README.md)** - Complete user guide
 - **[QUICK-START.md](QUICK-START.md)** - One-page reference
+- **[docs/GLOSSARY.md](docs/GLOSSARY.md)** - Definitions of key terms and metrics
 - **[docs/USAGE.md](docs/USAGE.md)** - Detailed examples
 - **[docs/STORE-ANALYSIS-GUIDE.md](docs/STORE-ANALYSIS-GUIDE.md)** - Store-specific analysis guide
 

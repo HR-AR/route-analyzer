@@ -1,55 +1,23 @@
-# Dependencies
+# Node.js
 node_modules/
-venv/
-__pycache__/
-*.pyc
-
-# Build outputs
 dist/
-build/
-coverage/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.npm
+/coverage
 
-# Environment
-.env*
-*.local.md
-tmp/
+# Python
+venv/
+*.pyc
+__pycache__/
+.env
 
-# Analysis outputs (stay local)
-time-breakdown-report.txt
-time-breakdown-data.json
-store-*-analysis.txt
-store-*-data.json
-demo-output.json
-returns-breakdown-report.txt
-returns-breakdown-data.json
-*.csv
-
-# Communication files (stay local)
-EMAIL-TEMPLATE.md
-SLACK-MESSAGE-*.md
-DELIVERABLES-SUMMARY.md
-DISTRIBUTION-CHECKLIST.md
-GITHUB-SETUP.md
-STORE-2242-SUMMARY.md
-SUMMARY.md
-STORE-*-PERFORMANCE-REVIEW.md
-GIT-PUSH-INSTRUCTIONS.txt
-PUSH-SUCCESS-SUMMARY.txt
-
-# Distribution packages
-route-analyzer-distribution/
-route-analyzer-dist.tar.gz
-route-analyzer-dist.zip
-GITHUB-README.md
-my-new-project/
-
-# Context engineering (stay local - not needed by users)
-CLAUDE.md
-examples/
-notes/
-docs/prd/
-docs/prompts/
-docs/prps/
-scripts/context-engine.mjs
-create-distribution.sh
-.github/
+# Application Specific
+uploads/
+server.log
+*.txt
+*.json
+!package.json
+!package-lock.json
+!tsconfig.json
