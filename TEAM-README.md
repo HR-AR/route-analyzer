@@ -3,45 +3,30 @@
 ## What This Tool Does
 
 Analyzes Dedicated Van Delivery data to help you:
-- ✅ Verify if drivers are on road for planned hours (8.33hr @ 10AM, 7.33hr @ 12PM)
-- ✅ Find routes deviating >10% from target
-- ✅ Identify extended breaks (>30min) and long load times (>60min)
-- ✅ Compare carrier performance
-- ✅ Get specific dates and store numbers for problem routes
+- Verify if drivers are on road for planned hours (8.33hr @ 10AM, 7.33hr @ 12PM)
+- Find routes deviating >10% from target
+- Identify extended breaks (>30min) and long load times (>60min)
+- Compare carrier performance
+- Get specific dates and store numbers for problem routes
 
 ## Quick Start (First Time Setup)
 
 ### 1. Install Prerequisites
+- **Node.js**: Install the LTS version from [https://nodejs.org/](https://nodejs.org/)
+- **Python**: Install version 3.11+ from [https://python.org/](https://python.org/downloads/)
 
-**Mac/Linux:**
-```bash
-# Install Node.js (if not already installed)
-# Visit: https://nodejs.org/ and download LTS version
+Make sure both `node` and `python3` are available in your system's command line PATH.
 
-# Check if Python 3 is installed
-python3 --version
-```
-
-**Windows:**
-- Install Node.js from https://nodejs.org/
-- Install Python 3 from https://python.org/downloads/
-
-### 2. Setup the Tool (One Time)
+### 2. Install Project Dependencies
 
 ```bash
 # Navigate to the project folder
 cd route-analysis-dashboard
 
-# Run the setup script
-./setup.sh
-
-# OR manually:
+# Install all dependencies
 npm install
-python3 -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
-pip install -r requirements.txt
-npm run build
 ```
+This single command will install all Node.js and Python packages and build the necessary files.
 
 ## How to Use
 
@@ -63,7 +48,7 @@ This generates a JSON report with:
 - Carrier breakdown
 - Worst performing routes
 
-### Time Breakdown Analysis (⭐ Recommended)
+### Time Breakdown Analysis (Recommended)
 
 ```bash
 # Get detailed time breakdown with dates and store numbers
@@ -71,41 +56,41 @@ npm run time-breakdown -- /path/to/your/data.csv
 ```
 
 **This is what you want to use regularly!** It shows:
-- ✅ **Specific dates** for each problem route
-- ✅ **Store numbers** for easy follow-up
-- ✅ Routes with **BOTH** extended dwell AND load time
-- ✅ Saves formatted report to `time-breakdown-report.txt`
-- ✅ Saves raw data to `time-breakdown-data.json`
+- **Specific dates** for each problem route
+- **Store numbers** for easy follow-up
+- Routes with **BOTH** extended dwell AND load time
+- Saves formatted report to `time-breakdown-report.txt`
+- Saves raw data to `time-breakdown-data.json`
 
 ## Understanding the Reports
 
 ### Time Breakdown Report Structure
 
 ```
-📊 EXTENDED DWELL & LOAD TIME ANALYSIS
+EXTENDED DWELL & LOAD TIME ANALYSIS
 ======================================================================
 
-⏱️ AVERAGE TIME SPENT (Per Route):
+AVERAGE TIME SPENT (Per Route):
   Shows overall averages across all routes
 
-🚨 CRITICAL: Extended Time Issues
+CRITICAL: Extended Time Issues
   • How many routes have problems
   • Total wasted time in hours
   • Potential for additional routes
 
-⚠️⚠️ DOUBLE TROUBLE:
+DOUBLE TROUBLE:
   Routes with BOTH extended dwell AND load time
   ↳ These are your highest priority!
 
-🔴 TOP 10 WORST DWELL TIMES:
+TOP 10 WORST DWELL TIMES:
   Individual routes with dates and store numbers
   ↳ Use this to follow up with specific drivers
 
-🔴 TOP 10 WORST LOAD TIMES:
+TOP 10 WORST LOAD TIMES:
   Individual routes with dates and store numbers
   ↳ May indicate warehouse/loading dock issues
 
-🎯 IMMEDIATE ACTIONS:
+IMMEDIATE ACTIONS:
   Specific recommendations based on your data
 ```
 
@@ -113,9 +98,9 @@ npm run time-breakdown -- /path/to/your/data.csv
 
 ```
 1. Frank Garcia (NTG)
-   📅 Date: 2025-10-01 | 🏪 Store: 1118
-   🕐 Dwell: 136.57 min (2.28 hrs)
-   ⏲️  Load: 19.15 min | 📦 Orders: 89
+   Date: 2025-10-01 | Store: 1118
+   Dwell: 136.57 min (2.28 hrs)
+   Load: 19.15 min | Orders: 89
 ```
 
 **This tells you:**
@@ -172,19 +157,16 @@ Your CSV must have these columns:
 ## Troubleshooting
 
 ### "Command not found: npm"
-→ Install Node.js from https://nodejs.org/
+Install Node.js from https://nodejs.org/
 
 ### "No module named 'pandas'"
-→ Run setup again: `./setup.sh`
-→ Or manually: `source venv/bin/activate && pip install pandas`
+This should be installed automatically by `npm install`. If you see this error, try removing the `node_modules` and `venv` folders and running `npm install` again.
 
 ### "Error: spawn python3 ENOENT"
-→ Make sure Python 3 is installed: `python3 --version`
-→ Or set PYTHON_PATH: `export PYTHON_PATH=/usr/local/bin/python3`
+Make sure Python 3 is installed and available in your system's PATH. You can check by running `python3 --version`.
 
 ### Report shows "undefined" for carrier stats
-→ This is a known display issue in console output
-→ The saved `time-breakdown-report.txt` file has correct data
+This is a known display issue in console output. The saved `time-breakdown-report.txt` file has correct data.
 
 ## Sharing Reports with Others
 
@@ -235,8 +217,8 @@ npm run time-breakdown -- data.csv
 # View saved report
 cat time-breakdown-report.txt
 
-# Re-run setup if something breaks
-./setup.sh
+# If something breaks, re-install dependencies
+npm install
 ```
 
 ---

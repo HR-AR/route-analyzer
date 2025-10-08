@@ -7,11 +7,13 @@
     "route-analyzer": "dist/cli.js"
   },
   "scripts": {
-    "start": "tsx src/cli.ts",
-    "time-breakdown": "tsx src/time-breakdown.ts",
-    "store-analysis": "tsx src/store-analysis.ts",
-    "returns-breakdown": "tsx src/returns-breakdown.ts",
+    "prestart": "npm run build",
+    "start": "node dist/cli.js",
+    "time-breakdown": "npm run build && node dist/time-breakdown.js",
+    "store-analysis": "npm run build && node dist/store-analysis.js",
+    "returns-breakdown": "npm run build && node dist/returns-breakdown.js",
     "build": "tsc",
+    "postinstall": "python3 -m venv venv && ./venv/bin/python3 -m pip install -r requirements.txt && npm run build",
     "lint": "echo 'Linting...' && exit 0",
     "test": "tsx --test tests/**/*.test.ts",
     "validate": "npm run lint && npm test && npm run build",

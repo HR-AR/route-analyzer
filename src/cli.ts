@@ -44,7 +44,7 @@ Output:
 
     // Summary to stderr for visibility
     console.error(`
-✅ Analysis complete!
+Analysis complete!
    Total routes: ${result.summary.total_routes}
    Outliers: ${result.summary.outlier_routes} (${result.summary.outlier_percentage}%)
    Extended dwell times: ${result.summary.routes_with_extended_dwell}
@@ -53,7 +53,7 @@ Output:
 
     process.exit(0);
   } catch (error) {
-    console.error(`❌ Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    console.error(`Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
     process.exit(1);
   }
 }

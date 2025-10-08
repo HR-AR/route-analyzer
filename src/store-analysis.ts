@@ -29,7 +29,7 @@ pythonProcess.on('close', (code) => {
   const results = JSON.parse(stdout);
 
   if (results.error) {
-    console.error(`\n❌ ${results.error}\n`);
+    console.error(`\nError: ${results.error}\n`);
     process.exit(1);
   }
 
@@ -39,15 +39,15 @@ pythonProcess.on('close', (code) => {
   let report = '';
 
   report += '\n' + '='.repeat(70) + '\n';
-  report += `📍 STORE #${s.store_id} - DETAILED ANALYSIS\n`;
+  report += `STORE #${s.store_id} - DETAILED ANALYSIS\n`;
   report += '='.repeat(70) + '\n';
 
-  report += `\n📅 Date Range: ${s.date_range.start} to ${s.date_range.end}\n`;
-  report += `📦 Total Routes: ${s.total_routes}\n`;
-  report += `🚚 Carriers: ${s.carriers.join(', ')}\n`;
-  report += `👤 Unique Drivers: ${s.total_drivers}\n`;
+  report += `\nDate Range: ${s.date_range.start} to ${s.date_range.end}\n`;
+  report += `Total Routes: ${s.total_routes}\n`;
+  report += `Carriers: ${s.carriers.join(', ')}\n`;
+  report += `Unique Drivers: ${s.total_drivers}\n`;
 
-  report += '\n📊 OVERALL PERFORMANCE:\n';
+  report += '\nOVERALL PERFORMANCE:\n';
   report += `  Average Trip Time:     ${s.avg_trip_actual_hours} hours (vs ${s.avg_estimated_hours} estimated)\n`;
   report += `  Average Variance:      ${s.avg_variance_hours > 0 ? '+' : ''}${s.avg_variance_hours} hours (${s.avg_variance_pct}%)\n`;
   report += `  Average Dwell Time:    ${s.avg_dwell_time_min} min\n`;
@@ -57,35 +57,35 @@ pythonProcess.on('close', (code) => {
   report += `  Total Orders Delivered: ${s.total_orders_delivered}\n`;
 
   if (results.trends.best_day) {
-    report += '\n✅ BEST PERFORMING DAY:\n';
+    report += '\nBEST PERFORMING DAY:\n';
     report += `  Date: ${results.trends.best_day.date}\n`;
     report += `  Driver: ${results.trends.best_day.driver}\n`;
     report += `  Performance: ${results.trends.best_day.reason}\n`;
   }
 
   if (results.trends.worst_day) {
-    report += '\n❌ WORST PERFORMING DAY:\n';
+    report += '\nWORST PERFORMING DAY:\n';
     report += `  Date: ${results.trends.worst_day.date}\n`;
     report += `  Driver: ${results.trends.worst_day.driver}\n`;
     report += `  Performance: ${results.trends.worst_day.reason}\n`;
   }
 
   if (results.trends.most_consistent_driver) {
-    report += '\n⭐ MOST CONSISTENT DRIVER:\n';
+    report += '\nMOST CONSISTENT DRIVER:\n';
     report += `  ${results.trends.most_consistent_driver.name}\n`;
     report += `  Average Variance: ${results.trends.most_consistent_driver.avg_variance_pct}%\n`;
     report += `  Consistency (low std dev): ${results.trends.most_consistent_driver.std_dev}\n`;
   }
 
   if (results.trends.most_variable_driver) {
-    report += '\n⚠️  MOST VARIABLE DRIVER:\n';
+    report += '\nMOST VARIABLE DRIVER:\n';
     report += `  ${results.trends.most_variable_driver.name}\n`;
     report += `  Average Variance: ${results.trends.most_variable_driver.avg_variance_pct}%\n`;
     report += `  Variability (high std dev): ${results.trends.most_variable_driver.std_dev}\n`;
   }
 
   if (results.issues && results.issues.length > 0) {
-    report += '\n🚨 IDENTIFIED ISSUES:\n';
+    report += '\nIDENTIFIED ISSUES:\n';
     results.issues.forEach((issue: any, i: number) => {
       report += `\n  ${i + 1}. ${issue.date} - ${issue.driver} (${issue.carrier})\n`;
       issue.issues.forEach((prob: string) => {
@@ -94,15 +94,15 @@ pythonProcess.on('close', (code) => {
     });
   }
 
-  report += '\n📋 DAY-BY-DAY BREAKDOWN:\n';
+  report += '\nDAY-BY-DAY BREAKDOWN:\n';
   results.daily_routes.forEach((route: any) => {
     const flags = [];
-    if (route.extended_dwell) flags.push('🕐 EXTENDED DWELL');
-    if (route.extended_load) flags.push('⏲️  EXTENDED LOAD');
-    if (route.variance_significant) flags.push('📊 HIGH VARIANCE');
-    const flagStr = flags.length > 0 ? ` ${flags.join(' ')}` : '';
+    if (route.extended_dwell) flags.push('EXTENDED DWELL');
+    if (route.extended_load) flags.push('EXTENDED LOAD');
+    if (route.variance_significant) flags.push('HIGH VARIANCE');
+    const flagStr = flags.length > 0 ? ` [${flags.join(', ')}]` : '';
 
-    report += `\n  📅 ${route.date} - ${route.driver} (${route.carrier})${flagStr}\n`;
+    report += `\n  ${route.date} - ${route.driver} (${route.carrier})${flagStr}\n`;
     report += `     Departure: ${route.departure_time} (${route.departure_category})\n`;
     report += `     Time: ${route.trip_actual_hours}hrs actual vs ${route.estimated_hours}hrs estimated (${route.variance_hours > 0 ? '+' : ''}${route.variance_hours}hrs, ${route.variance_pct}%)\n`;
     report += `     Dwell: ${route.dwell_time_min}min | Load: ${route.load_time_min}min | Sort: ${route.sort_time_min}min\n`;
@@ -120,12 +120,12 @@ pythonProcess.on('close', (code) => {
   // Save to file
   const reportFile = `store-${storeId}-analysis.txt`;
   writeFileSync(reportFile, report);
-  console.log(`\n✅ Report saved to: ${reportFile}\n`);
+  console.log(`\nReport saved to: ${reportFile}\n`);
 
   // Save JSON
   const jsonFile = `store-${storeId}-data.json`;
   writeFileSync(jsonFile, JSON.stringify(results, null, 2));
-  console.log(`✅ Raw data saved to: ${jsonFile}\n`);
+  console.log(`Raw data saved to: ${jsonFile}\n`);
 });
 
 pythonProcess.stdin.write(JSON.stringify({ csv_path: csvPath, store_id: storeId }));

@@ -89,14 +89,14 @@ function analyzeReturnsBreakdown(request: ReturnsBreakdownRequest): Promise<Retu
 
 function formatCauseLabel(cause: string): string {
   const labels: Record<string, string> = {
-    'CATASTROPHIC_FAILURE': '🚨 Catastrophic Failure (>50% returns)',
-    'EXTENDED_BREAK': '☕ Extended Break (>30min dwell)',
-    'LOAD_ISSUES': '📦 Load Issues (>60min load time)',
-    'TIME_MANAGEMENT_FAILURE': '⏰ Time Management Failure (high variance, >15hrs)',
-    'LOW_EFFICIENCY': '🐌 Low Efficiency (<8 drops/hour)',
-    'VOLUME_OVERLOAD': '📊 Volume Overload (>80 orders)',
-    'GAVE_UP_EARLY': '🏳️ Gave Up Early (finished fast with high returns)',
-    'CUSTOMER_ACCESS_ISSUES': '🚪 Customer Access Issues'
+    'CATASTROPHIC_FAILURE': 'Catastrophic Failure (>50% returns)',
+    'EXTENDED_BREAK': 'Extended Break (>30min dwell)',
+    'LOAD_ISSUES': 'Load Issues (>60min load time)',
+    'TIME_MANAGEMENT_FAILURE': 'Time Management Failure (high variance, >15hrs)',
+    'LOW_EFFICIENCY': 'Low Efficiency (<8 drops/hour)',
+    'VOLUME_OVERLOAD': 'Volume Overload (>80 orders)',
+    'GAVE_UP_EARLY': 'Gave Up Early (finished fast with high returns)',
+    'CUSTOMER_ACCESS_ISSUES': 'Customer Access Issues'
   };
   return labels[cause] || cause;
 }
@@ -105,22 +105,22 @@ function generateReport(result: ReturnsBreakdownResult): string {
   let report = '';
 
   report += '=' .repeat(80) + '\n';
-  report += '📉 TOP 10 ROUTES WITH HIGHEST RETURNS - ROOT CAUSE ANALYSIS\n';
+  report += 'TOP 10 ROUTES WITH HIGHEST RETURNS - ROOT CAUSE ANALYSIS\n';
   report += '='.repeat(80) + '\n\n';
 
   if (result.top_return_routes.length === 0) {
-    report += '✅ No routes with returns found in this dataset!\n';
+    report += 'No routes with returns found in this dataset!\n';
     return report;
   }
 
   // Summary statistics
-  report += '📊 OVERALL PATTERNS:\n';
+  report += 'OVERALL PATTERNS:\n';
   report += '-'.repeat(80) + '\n';
   report += `Total Routes with Returns: ${result.patterns.total_routes_with_returns}\n`;
   report += `Total Returns: ${result.patterns.total_returns} out of ${result.patterns.total_orders} orders\n`;
   report += `Average Return Rate: ${result.patterns.avg_return_rate.toFixed(1)}%\n\n`;
 
-  report += '🔍 MOST COMMON ROOT CAUSES:\n';
+  report += 'MOST COMMON ROOT CAUSES:\n';
   const sortedCauses = Object.entries(result.patterns.most_common_causes)
     .sort((a, b) => b[1] - a[1]);
 
@@ -129,7 +129,7 @@ function generateReport(result: ReturnsBreakdownResult): string {
   });
 
   report += '\n' + '='.repeat(80) + '\n';
-  report += '🚨 TOP 10 ROUTES BY RETURN COUNT\n';
+  report += 'TOP 10 ROUTES BY RETURN COUNT\n';
   report += '='.repeat(80) + '\n\n';
 
   result.top_return_routes.forEach((route, index) => {
@@ -137,17 +137,17 @@ function generateReport(result: ReturnsBreakdownResult): string {
     report += '-'.repeat(80) + '\n';
 
     // Orders breakdown
-    report += `📦 Orders: ${route.total_orders} total | `;
-    report += `✅ ${route.delivered} delivered | `;
-    report += `❌ ${route.returned} returned (${route.return_rate.toFixed(1)}%) | `;
-    report += `⏳ ${route.pending} pending\n`;
+    report += `Orders: ${route.total_orders} total | `;
+    report += `${route.delivered} delivered | `;
+    report += `${route.returned} returned (${route.return_rate.toFixed(1)}%) | `;
+    report += `${route.pending} pending\n`;
 
     // Time metrics
-    report += `⏱️  Time: ${route.trip_actual_hours.toFixed(2)}hrs actual vs ${route.trip_estimate_hours.toFixed(2)}hrs estimate `;
+    report += `Time: ${route.trip_actual_hours.toFixed(2)}hrs actual vs ${route.trip_estimate_hours.toFixed(2)}hrs estimate `;
     report += `(${route.variance_pct >= 0 ? '+' : ''}${route.variance_pct.toFixed(1)}% variance)\n`;
 
     // Efficiency metrics
-    report += `📈 Efficiency: ${route.drops_per_hour.toFixed(1)} drops/hour | `;
+    report += `Efficiency: ${route.drops_per_hour.toFixed(1)} drops/hour | `;
     report += `Dwell: ${route.dwell_time_min.toFixed(0)}min | `;
     report += `Load: ${route.load_time_min.toFixed(0)}min\n`;
 
@@ -161,17 +161,17 @@ function generateReport(result: ReturnsBreakdownResult): string {
     if (factors.very_high_volume) activeFactors.push('High Volume');
 
     if (activeFactors.length > 0) {
-      report += `⚠️  Flags: ${activeFactors.join(', ')}\n`;
+      report += `Flags: ${activeFactors.join(', ')}\n`;
     }
 
     // Likely causes
-    report += `\n🎯 Likely Root Causes:\n`;
+    report += `\nLikely Root Causes:\n`;
     route.likely_causes.forEach(cause => {
       report += `   ${formatCauseLabel(cause)}\n`;
     });
 
     // Recommendations
-    report += `\n💡 Recommendation: `;
+    report += `\nRecommendation: `;
     if (route.likely_causes.includes('CATASTROPHIC_FAILURE')) {
       report += 'URGENT - Investigate this driver immediately. >50% returns is unacceptable.\n';
     } else if (route.likely_causes.includes('GAVE_UP_EARLY')) {
@@ -192,7 +192,7 @@ function generateReport(result: ReturnsBreakdownResult): string {
   });
 
   report += '='.repeat(80) + '\n';
-  report += '📋 SUMMARY OF CONTRIBUTING FACTORS:\n';
+  report += 'SUMMARY OF CONTRIBUTING FACTORS:\n';
   report += '-'.repeat(80) + '\n';
   report += `Routes with Extended Dwell (>30min): ${result.patterns.routes_with_extended_dwell}\n`;
   report += `Routes with Extended Load (>60min): ${result.patterns.routes_with_extended_load}\n`;
@@ -223,12 +223,12 @@ async function main() {
     // Save report to file
     const reportPath = path.join(process.cwd(), 'returns-breakdown-report.txt');
     fs.writeFileSync(reportPath, report);
-    console.log(`\n✅ Report saved to: ${reportPath}`);
+    console.log(`\nReport saved to: ${reportPath}`);
 
     // Save JSON data
     const dataPath = path.join(process.cwd(), 'returns-breakdown-data.json');
     fs.writeFileSync(dataPath, JSON.stringify(result, null, 2));
-    console.log(`✅ JSON data saved to: ${dataPath}`);
+    console.log(`JSON data saved to: ${dataPath}`);
 
   } catch (error) {
     console.error('Analysis failed:', error);

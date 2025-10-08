@@ -11,15 +11,15 @@ Automated analysis tool for Dedicated Van Delivery route performance. Identifies
 git clone https://github.com/[YOUR-ORG]/route-analyzer.git
 cd route-analyzer
 
-# One-command setup
-./setup.sh
+# Install dependencies
+npm install
 ```
 
-The setup script will:
+The `npm install` command will automatically:
 - Install Node.js dependencies
-- Create Python virtual environment
-- Install Python packages (pandas)
-- Build TypeScript code
+- Create a Python virtual environment in a `venv` folder
+- Install required Python packages (e.g., pandas)
+- Build the TypeScript code
 
 ### Usage
 
@@ -71,32 +71,32 @@ npm start -- /path/to/data.csv
 
 ### Time Breakdown
 ```
-🔴 TOP 10 WORST DWELL TIMES (Individual Routes):
+TOP 10 WORST DWELL TIMES (Individual Routes):
 
   1. Frank Garcia (NTG)
-     📅 Date: 2025-10-01 | 🏪 Store: 1118
-     🕐 Dwell: 136.57 min (2.28 hrs)
-     ⏲️  Load: 19.15 min | 📦 Orders: 89
+     Date: 2025-10-01 | Store: 1118
+     Dwell: 136.57 min (2.28 hrs)
+     Load: 19.15 min | Orders: 89
 
   2. Alejandro Sanchez (NTG)
-     📅 Date: 2025-10-01 | 🏪 Store: 973
-     🕐 Dwell: 126.3 min (2.10 hrs)
-     ⏲️  Load: 5.45 min | 📦 Orders: 69
+     Date: 2025-10-01 | Store: 973
+     Dwell: 126.3 min (2.10 hrs)
+     Load: 5.45 min | Orders: 69
 ```
 
 Now you can follow up: *"On Oct 1st at Store 1118, investigate Frank Garcia's 2.3 hour dwell time"*
 
 ### Store Analysis
 ```
-📍 STORE #2242 - DETAILED ANALYSIS
+STORE #2242 - DETAILED ANALYSIS
 
-📊 OVERALL PERFORMANCE:
+OVERALL PERFORMANCE:
   Average Trip Time:     8.43 hours (vs 6.58 estimated)
   Average Variance:      +1.85 hours (28%)
-  Average Dwell Time:    11.6 min ✅
-  Average Load Time:     13.5 min ✅
+  Average Dwell Time:    11.6 min
+  Average Load Time:     13.5 min
 
-🚨 IDENTIFIED ISSUES:
+IDENTIFIED ISSUES:
   Oct 3 - High variance due to volume (73 orders vs typical 55)
 ```
 
@@ -127,10 +127,10 @@ Your CSV must include these columns:
 Install Node.js from https://nodejs.org/
 
 ### "No module named 'pandas'"
-Run setup again: `./setup.sh`
+The `npm install` command should handle this automatically. If you see this error, try removing the `node_modules` and `venv` directories and running `npm install` again.
 
 ### "spawn python3 ENOENT"
-Ensure Python 3 is installed: `python3 --version`
+Ensure Python 3 is installed and available in your system's PATH. You can check by running `python3 --version`.
 
 ## Architecture
 
