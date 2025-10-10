@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import { spawn } from 'child_process';
 import { resolve } from 'path';
+import { getPythonPath } from './python-helper.js';
 
 // Parse command line arguments
 const args = process.argv.slice(2);
@@ -24,7 +25,7 @@ if (excludeIndex !== -1) {
 
 csvPath = resolve(csvPath);
 
-const pythonProcess = spawn('./venv/bin/python3', ['./scripts/analysis/batch_density_analysis.py']);
+const pythonProcess = spawn(getPythonPath(), ['./scripts/analysis/batch_density_analysis.py']);
 
 let stdout = '';
 let stderr = '';

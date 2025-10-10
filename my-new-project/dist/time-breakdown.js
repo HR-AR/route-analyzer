@@ -2,8 +2,9 @@
 import { spawn } from 'child_process';
 import { resolve } from 'path';
 import { writeFileSync } from 'fs';
+import { getPythonPath } from './python-helper.js';
 const csvPath = resolve(process.argv[2] || '../data_table_1.csv');
-const pythonProcess = spawn('./venv/bin/python3', ['./scripts/analysis/detailed_time_analysis.py']);
+const pythonProcess = spawn(getPythonPath(), ['./scripts/analysis/detailed_time_analysis.py']);
 let stdout = '';
 let stderr = '';
 pythonProcess.stdout.on('data', (chunk) => stdout += chunk.toString());

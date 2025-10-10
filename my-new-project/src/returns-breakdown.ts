@@ -3,6 +3,7 @@
 import { spawn } from 'child_process';
 import * as fs from 'fs';
 import * as path from 'path';
+import { getPythonPath } from './python-helper.js';
 
 interface ReturnsBreakdownRequest {
   csvPath: string;
@@ -57,7 +58,7 @@ interface ReturnsBreakdownResult {
 
 function analyzeReturnsBreakdown(request: ReturnsBreakdownRequest): Promise<ReturnsBreakdownResult> {
   return new Promise((resolve, reject) => {
-    const pythonExecutable = process.env.PYTHON_PATH || './venv/bin/python3';
+    const pythonExecutable = getPythonPath();
     const scriptPath = './scripts/analysis/returns_breakdown.py';
     const pythonProcess = spawn(pythonExecutable, [scriptPath]);
 

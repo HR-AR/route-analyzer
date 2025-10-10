@@ -2,6 +2,7 @@
 import { spawn } from 'child_process';
 import { resolve } from 'path';
 import { writeFileSync } from 'fs';
+import { getPythonPath } from './python-helper.js';
 
 const storeId = process.argv[2];
 const csvPath = resolve(process.argv[3] || '../data_table_1.csv');
@@ -12,7 +13,7 @@ if (!storeId) {
   process.exit(1);
 }
 
-const pythonProcess = spawn('./venv/bin/python3', ['./scripts/analysis/store_specific_analysis.py']);
+const pythonProcess = spawn(getPythonPath(), ['./scripts/analysis/store_specific_analysis.py']);
 
 let stdout = '';
 let stderr = '';

@@ -2,6 +2,7 @@
 import { spawn } from 'child_process';
 import { resolve } from 'path';
 import { writeFileSync } from 'fs';
+import { getPythonPath } from './python-helper.js';
 
 // Support both modes: analyze all stores OR specific store
 const firstArg = process.argv[2];
@@ -17,7 +18,7 @@ if (!analyzeAll && (!storeId || isNaN(storeId))) {
   process.exit(1);
 }
 
-const pythonProcess = spawn('./venv/bin/python3', ['./scripts/analysis/multiday_route_analysis.py']);
+const pythonProcess = spawn(getPythonPath(), ['./scripts/analysis/multiday_route_analysis.py']);
 
 let stdout = '';
 let stderr = '';

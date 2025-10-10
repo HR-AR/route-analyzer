@@ -7,6 +7,7 @@
 import { spawn } from 'child_process';
 import { writeFileSync } from 'fs';
 import { resolve, join } from 'path';
+import { getPythonPath } from './python-helper.js';
 
 interface FailedOrdersArgs {
   csvPath: string;
@@ -18,11 +19,11 @@ async function runFailedOrdersAnalysis(args: FailedOrdersArgs): Promise<void> {
   return new Promise((resolve, reject) => {
     const parentDir = join(process.cwd(), '..');
     const pythonScript = join(parentDir, 'failed_orders_analyzer.py');
-    const venvPython = join(process.cwd(), 'venv', 'bin', 'python3');
+    const pythonPath = getPythonPath();
 
     console.error(`Running failed orders analysis on: ${csvPath}`);
 
-    const pythonProcess = spawn(venvPython, [pythonScript, csvPath], {
+    const pythonProcess = spawn(pythonPath, [pythonScript, csvPath], {
       cwd: process.cwd(),  // Run in my-new-project directory so output files are saved here
       env: {
         ...process.env,

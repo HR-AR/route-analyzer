@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import { spawn } from 'child_process';
 import { resolve } from 'path';
+import { getPythonPath } from './python-helper.js';
 // Parse command line arguments
 const args = process.argv.slice(2);
 let csvPath;
@@ -18,7 +19,7 @@ else {
     csvPath = args[0] || '../data_table_1.csv';
 }
 csvPath = resolve(csvPath);
-const pythonProcess = spawn('./venv/bin/python3', ['./scripts/analysis/batch_density_by_day.py']);
+const pythonProcess = spawn(getPythonPath(), ['./scripts/analysis/batch_density_by_day.py']);
 let stdout = '';
 let stderr = '';
 pythonProcess.stdout.on('data', (chunk) => stdout += chunk.toString());

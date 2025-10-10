@@ -3,6 +3,7 @@
 import { spawn } from 'child_process';
 import * as fs from 'fs';
 import * as path from 'path';
+import { getPythonPath } from './python-helper.js';
 
 interface PendingOrdersRequest {
   csvPath: string;
@@ -47,7 +48,7 @@ interface PendingOrdersResult {
 
 function analyzePendingOrders(request: PendingOrdersRequest): Promise<PendingOrdersResult> {
   return new Promise((resolve, reject) => {
-    const pythonExecutable = process.env.PYTHON_PATH || './venv/bin/python3';
+    const pythonExecutable = getPythonPath();
     const scriptPath = './scripts/analysis/pending_orders_analysis.py';
     const pythonProcess = spawn(pythonExecutable, [scriptPath]);
 

@@ -2,6 +2,7 @@
 import { spawn } from 'child_process';
 import { resolve } from 'path';
 import { writeFileSync } from 'fs';
+import { getPythonPath } from './python-helper.js';
 const storeId = parseInt(process.argv[2]);
 const csvPath = resolve(process.argv[3] || '../data_table_1.csv');
 if (!storeId || isNaN(storeId)) {
@@ -9,7 +10,7 @@ if (!storeId || isNaN(storeId)) {
     console.error('Example: npm run driver-store-analysis -- 5930 /Users/h0r03cw/Downloads/data_table_1.csv');
     process.exit(1);
 }
-const pythonProcess = spawn('./venv/bin/python3', ['./scripts/analysis/driver_store_analysis.py']);
+const pythonProcess = spawn(getPythonPath(), ['./scripts/analysis/driver_store_analysis.py']);
 let stdout = '';
 let stderr = '';
 pythonProcess.stdout.on('data', (chunk) => stdout += chunk.toString());

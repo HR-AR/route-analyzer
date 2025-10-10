@@ -1,5 +1,6 @@
 import { spawn } from 'child_process';
 import { z } from 'zod';
+import { getPythonPath } from './python-helper.js';
 // Input schema for the analysis request
 const AnalysisRequestSchema = z.object({
     csvPath: z.string().min(1, 'CSV path is required'),
@@ -44,7 +45,7 @@ export function analyzeRoutes(request) {
     // Validate input
     AnalysisRequestSchema.parse(request);
     return new Promise((resolve, reject) => {
-        const pythonExecutable = process.env.PYTHON_PATH || './venv/bin/python3';
+        const pythonExecutable = getPythonPath();
         const scriptPath = './scripts/analysis/route_analyzer.py';
         const pythonProcess = spawn(pythonExecutable, [scriptPath]);
         let stdoutData = '';

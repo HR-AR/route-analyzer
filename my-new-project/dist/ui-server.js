@@ -3,6 +3,7 @@ import multer from 'multer';
 import { spawn } from 'child_process';
 import { existsSync, unlinkSync, readFileSync } from 'fs';
 import { join } from 'path';
+import { getPythonPath } from './python-helper.js';
 const app = express();
 const upload = multer({ dest: 'uploads/' });
 const PORT = process.env.PORT ? parseInt(process.env.PORT) : 3000;
@@ -616,11 +617,11 @@ async function cleanData(filePath) {
         // Get absolute paths - we're in my-new-project, script is in parent dir
         const parentDir = join(process.cwd(), '..');
         const pythonScript = join(parentDir, 'clean_data_cli.py');
-        const venvPython = join(process.cwd(), 'venv', 'bin', 'python3');
+        const pythonPath = getPythonPath();
         console.log(`Cleaning data: ${pythonScript} ${filePath} ${cleanedPath}`);
-        console.log(`Python: ${venvPython}`);
+        console.log(`Python: ${pythonPath}`);
         console.log(`Working directory: ${process.cwd()}`);
-        const pythonProcess = spawn(venvPython, [pythonScript, filePath, cleanedPath], {
+        const pythonProcess = spawn(pythonPath, [pythonScript, filePath, cleanedPath], {
             cwd: process.cwd(), // Stay in my-new-project directory
             env: process.env
         });
