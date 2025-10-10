@@ -1,0 +1,56 @@
+# Dependencies
+node_modules/
+venv/
+__pycache__/
+*.pyc
+
+# Build outputs
+dist/
+build/
+coverage/
+
+# Web UI uploads (temporary files)
+uploads/
+
+# Environment
+.env*
+*.local.md
+tmp/
+
+# Analysis outputs (stay local)
+*-report.txt
+*-data.json
+*-analysis*.txt
+*.csv
+nohup.out
+ui-server.log
+
+# Communication files (stay local)
+EMAIL-TEMPLATE.md
+SLACK-MESSAGE-*.md
+DELIVERABLES-SUMMARY.md
+DISTRIBUTION-CHECKLIST.md
+GITHUB-SETUP.md
+STORE-2242-SUMMARY.md
+SUMMARY.md
+STORE-*-PERFORMANCE-REVIEW.md
+GIT-PUSH-INSTRUCTIONS.txt
+PUSH-SUCCESS-SUMMARY.txt
+
+# Distribution packages
+route-analyzer-distribution/
+route-analyzer-dist.tar.gz
+route-analyzer-dist.zip
+GITHUB-README.md
+my-new-project/
+
+# Context engineering (stay local - not needed by users)
+CLAUDE.md
+examples/
+notes/
+docs/prd/
+docs/prompts/
+docs/prps/
+scripts/context-engine.mjs
+create-distribution.sh
+.github/

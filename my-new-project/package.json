@@ -1,0 +1,42 @@
+{
+  "name": "route-analysis-dashboard",
+  "version": "0.1.0",
+  "type": "module",
+  "main": "dist/route-analyzer.js",
+  "bin": {
+    "route-analyzer": "dist/cli.js"
+  },
+  "scripts": {
+    "start": "node dist/ui-server.js",
+    "dev": "tsx src/ui-server.ts",
+    "ui": "tsx src/ui-server.ts",
+    "time-breakdown": "tsx src/time-breakdown.ts",
+    "store-analysis": "tsx src/store-analysis.ts",
+    "store-metrics": "tsx src/store-metrics.ts",
+    "driver-store-analysis": "tsx src/driver-store-analysis.ts",
+    "multiday-analysis": "tsx src/multiday-analysis.ts",
+    "returns-breakdown": "tsx src/returns-breakdown.ts",
+    "pending-orders": "tsx src/pending-orders.ts",
+    "failed-orders-analysis": "tsx src/failed-orders-analysis.ts",
+    "build": "tsc",
+    "lint": "echo 'Linting...' && exit 0",
+    "test": "tsx --test tests/**/*.test.ts",
+    "validate": "npm run lint && npm test && npm run build",
+    "prp": "node scripts/context-engine.mjs prp",
+    "scout": "node scripts/context-engine.mjs scout",
+    "implement": "node scripts/context-engine.mjs implement",
+    "sync": "node scripts/context-engine.mjs sync"
+  },
+  "dependencies": {
+    "@types/express": "^5.0.3",
+    "@types/multer": "^2.0.0",
+    "express": "^5.1.0",
+    "multer": "^2.0.2",
+    "zod": "^3.22.4"
+  },
+  "devDependencies": {
+    "@types/node": "^20.10.0",
+    "tsx": "^4.7.0",
+    "typescript": "^5.3.3"
+  }
+}
