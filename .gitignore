@@ -12,6 +12,12 @@ data_table_*.csv
 *_by_*.csv
 *_problem_trips.csv
 
+# Documentation (keep local)
+*.md
+!README.md
+!my-new-project/README.md
+CHANGES_SUMMARY.txt
+
 # Uploaded Files
 my-new-project/uploads/*
 uploads/
@@ -34,7 +40,6 @@ env/
 ENV/
 *.egg-info/
 .eggs/
-dist/
 build/
 
 # IDE
