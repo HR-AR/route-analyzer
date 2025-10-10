@@ -1,0 +1,41 @@
+services:
+  # Web service for the Route Analysis Dashboard
+  - type: web
+    name: route-analysis-dashboard
+    runtime: node
+    region: oregon # Change to your preferred region (oregon, frankfurt, singapore, ohio)
+    plan: free # Free tier - upgrade to 'starter' for better performance
+    branch: main # Deploy from main branch
+
+    # Build configuration
+    buildCommand: |
+      # Install Node.js dependencies
+      npm install
+      # Build TypeScript
+      npm run build
+      # Install Python dependencies
+      pip install -r requirements.txt
+
+    # Start command
+    startCommand: node dist/ui-server.js
+
+    # Environment setup
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000 # Render's default port
+      - key: PYTHON_VERSION
+        value: 3.11.9
+
+    # Health check endpoint
+    healthCheckPath: /health
+
+    # Disk storage for uploads (temporary files)
+    disk:
+      name: uploads
+      mountPath: /opt/render/project/src/my-new-project/uploads
+      sizeGB: 1
+
+    # Auto-deploy on push to main
+    autoDeploy: true

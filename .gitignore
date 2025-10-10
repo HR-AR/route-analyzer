@@ -1,0 +1,78 @@
+# Email Template (don't commit to Git)
+EMAIL_TEMPLATE.md
+
+# Data Files (CSV files contain sensitive data)
+*.csv
+data_table_*.csv
+*_cleaned.csv
+
+# Generated Reports
+*-report.txt
+*-data.json
+*_by_*.csv
+*_problem_trips.csv
+
+# Uploaded Files
+my-new-project/uploads/*
+uploads/
+
+# Node.js
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Python
+*.pyc
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+ENV/
+*.egg-info/
+.eggs/
+dist/
+build/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Logs
+*.log
+logs/
+server.log
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+
+# Test files
+test_*.csv
+test_*.txt
+
+# Environment variables
+.env
+.env.local
+
+# Build output (Note: dist/ should be committed for Render deployment)
+# dist/  # Uncomment for local development only
+*.tsbuildinfo
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Personal notes
+NOTES.md
+TODO.md
+SCRATCH.md
