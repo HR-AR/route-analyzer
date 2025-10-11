@@ -6,11 +6,24 @@ EMAIL_TEMPLATE.md
 data_table_*.csv
 *_cleaned.csv
 
+# Analysis folders with sensitive data
+Exec esc/
+"Exec esc/"
+
 # Generated Reports
 *-report.txt
 *-data.json
 *_by_*.csv
 *_problem_trips.csv
+
+# Analysis images/visualizations
+*.png
+*.jpg
+*.jpeg
+*.gif
+*_analysis.png
+*_comparison*.png
+*_impact*.png
 
 # Documentation (keep local)
 *.md
@@ -41,6 +54,21 @@ ENV/
 *.egg-info/
 .eggs/
 build/
+
+# Analysis scripts (keep local)
+*_analysis.py
+*_degradation*.py
+*_dispense*.py
+analyze_*.py
+create_*.py
+find_*.py
+merge_*.py
+correct_*.py
+load_*.py
+complete_*.py
+comprehensive_*.py
+same_*.py
+*_impact.py
 
 # IDE
 .vscode/
