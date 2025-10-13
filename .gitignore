@@ -9,6 +9,7 @@ data_table_*.csv
 # Analysis folders with sensitive data
 Exec esc/
 "Exec esc/"
+Analysis_Archive/
 
 # Generated Reports
 *-report.txt
