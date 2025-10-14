@@ -622,9 +622,8 @@ app.post('/download-json', express.json(), (req, res) => {
 async function cleanData(filePath: string): Promise<string> {
   return new Promise((resolve, reject) => {
     const cleanedPath = filePath.replace('.csv', '_cleaned.csv');
-    // Get absolute paths - we're in my-new-project, script is in parent dir
-    const parentDir = join(process.cwd(), '..');
-    const pythonScript = join(parentDir, 'clean_data_cli.py');
+    // Python script is now in the same directory as the project
+    const pythonScript = join(process.cwd(), 'clean_data_cli.py');
     const pythonPath = getPythonPath();
 
     console.log(`Cleaning data: ${pythonScript} ${filePath} ${cleanedPath}`);
