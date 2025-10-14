@@ -7,7 +7,21 @@ Deep dive into a specific store's performance
 import sys
 import json
 import pandas as pd
+import numpy as np
 from datetime import datetime
+
+
+def clean_for_json(obj):
+    """Replace NaN and infinity values with None for JSON serialization"""
+    if isinstance(obj, dict):
+        return {k: clean_for_json(v) for k, v in obj.items()}
+    elif isinstance(obj, list):
+        return [clean_for_json(item) for item in obj]
+    elif isinstance(obj, float):
+        if np.isnan(obj) or np.isinf(obj):
+            return None
+        return obj
+    return obj
 
 
 def parse_datetime(dt_str: str) -> datetime:
@@ -204,6 +218,8 @@ def main():
             raise ValueError("csv_path and store_id are required")
 
         results = analyze_store(csv_path, store_id)
+        # Clean NaN/inf values before JSON serialization
+        results = clean_for_json(results)
         print(json.dumps(results, indent=2))
         sys.exit(0)
 
