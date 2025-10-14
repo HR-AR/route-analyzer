@@ -403,6 +403,7 @@ app.get('/', (req, res) => {
       <div id="resultsContent" class="results-content"></div>
       <div class="download-buttons">
         <button id="downloadTxt" class="download-btn">Download Report (.txt)</button>
+        <button id="downloadCsv" class="download-btn">Download Data (.csv)</button>
         <button id="downloadJson" class="download-btn">Download Data (.json)</button>
       </div>
     </div>
@@ -422,6 +423,7 @@ app.get('/', (req, res) => {
     const topNInputWrapper = document.getElementById('topNInputWrapper');
     const topNInput = document.getElementById('topN');
     const downloadTxtBtn = document.getElementById('downloadTxt');
+    const downloadCsvBtn = document.getElementById('downloadCsv');
     const downloadJsonBtn = document.getElementById('downloadJson');
 
     let currentReport = '';
@@ -543,6 +545,36 @@ app.get('/', (req, res) => {
       URL.revokeObjectURL(url);
     });
 
+    downloadCsvBtn.addEventListener('click', async () => {
+      try {
+        const response = await fetch('/download-csv', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            analysisType: currentAnalysisType,
+            storeNumber: currentStoreNumber
+          })
+        });
+
+        if (!response.ok) {
+          showError('CSV data not available for this analysis');
+          return;
+        }
+
+        const blob = await response.blob();
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = getReportFilename('.csv');
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      } catch (err) {
+        showError('Failed to download CSV data');
+      }
+    });
+
     downloadJsonBtn.addEventListener('click', async () => {
       try {
         const response = await fetch('/download-json', {
@@ -595,6 +627,59 @@ app.get('/', (req, res) => {
   `);
 });
 
+// Helper function to convert JSON data to CSV
+function jsonToCSV(data: any, analysisType: string): string {
+  if (!data) return '';
+
+  let csv = '';
+
+  // Handle different analysis types
+  if (analysisType === 'store-metrics' && data.store_metrics) {
+    // Store metrics CSV
+    csv = 'Store ID,Route Count,Avg DPH,Median DPH,Best DPH,Worst DPH,Batch Density,Total Orders,Delivered Orders,Returned Orders,Pending Orders,Failed Orders,Returns Rate (%),Pending Rate (%),Routes with Pending,Routes with High Pending,Avg Planned Hours,Avg Actual Hours,Avg Variance Hours,Avg Dwell Time (min),Max Dwell Time (min),Avg Load Time (min),Max Load Time (min),Carriers\n';
+
+    data.store_metrics.forEach((store: any) => {
+      csv += `${store.store_id},${store.route_count},${store.avg_dph},${store.median_dph},${store.best_dph},${store.worst_dph},${store.batch_density},${store.total_orders},${store.delivered_orders},${store.returned_orders},${store.pending_orders},${store.failed_orders},${store.returns_rate},${store.pending_rate},${store.routes_with_pending},${store.routes_with_high_pending},${store.avg_planned_hours},${store.avg_actual_hours},${store.avg_variance_hours},${store.avg_dwell_time},${store.max_dwell_time},${store.avg_load_time},${store.max_load_time},"${store.carriers.join('; ')}"\n`;
+    });
+  } else if (analysisType === 'failed-orders' && data.summary) {
+    // Failed orders summary CSV
+    csv = 'Metric,Value\n';
+    csv += `Total Orders,${data.summary.total_orders}\n`;
+    csv += `Failed Orders,${data.summary.failed_orders}\n`;
+    csv += `Failed Rate (%),${data.summary.failed_rate}\n`;
+    csv += `Total Routes,${data.summary.total_routes}\n`;
+    csv += `Routes with Failures,${data.summary.routes_with_failures}\n`;
+    csv += `Routes with Failures (%),${data.summary.routes_with_failures_pct}\n`;
+  } else {
+    // Generic conversion for other analysis types
+    // Try to find the main data array in the JSON
+    const dataArray = data.routes || data.orders || data.results || data.stores || [];
+
+    if (Array.isArray(dataArray) && dataArray.length > 0) {
+      // Get headers from first object
+      const headers = Object.keys(dataArray[0]);
+      csv = headers.join(',') + '\n';
+
+      // Add rows
+      dataArray.forEach((row: any) => {
+        const values = headers.map(header => {
+          const value = row[header];
+          // Handle values with commas or quotes
+          if (typeof value === 'string' && (value.includes(',') || value.includes('"'))) {
+            return `"${value.replace(/"/g, '""')}"`;
+          }
+          return value;
+        });
+        csv += values.join(',') + '\n';
+      });
+    } else {
+      return 'No data available for CSV export';
+    }
+  }
+
+  return csv;
+}
+
 // Download JSON endpoint
 app.post('/download-json', express.json(), (req, res) => {
   const { analysisType, storeNumber } = req.body;
@@ -616,6 +701,46 @@ app.post('/download-json', express.json(), (req, res) => {
   }
 
   res.sendFile(jsonFile, { root: process.cwd() });
+});
+
+// Download CSV endpoint
+app.post('/download-csv', express.json(), (req, res) => {
+  const { analysisType, storeNumber } = req.body;
+
+  const jsonPatterns: Record<string, string> = {
+    'store-metrics': 'store-metrics-data.json',
+    'driver-store-analysis': `driver-store-${storeNumber}-data.json`,
+    'multiday-analysis': `multiday-analysis-${storeNumber}-data.json`,
+    'time-breakdown': 'time-breakdown-data.json',
+    'store-analysis': `store-${storeNumber}-analysis-data.json`,
+    'returns-breakdown': 'returns-breakdown-data.json',
+    'pending-orders': 'pending-orders-data.json',
+    'failed-orders': 'failed-orders-data.json'
+  };
+
+  const jsonFile = jsonPatterns[analysisType];
+  if (!jsonFile || !existsSync(jsonFile)) {
+    return res.status(404).json({ error: 'Data not available for CSV export' });
+  }
+
+  try {
+    // Read JSON file
+    const jsonData = JSON.parse(readFileSync(jsonFile, 'utf-8'));
+
+    // Convert to CSV
+    const csvContent = jsonToCSV(jsonData, analysisType);
+
+    if (!csvContent || csvContent === 'No data available for CSV export') {
+      return res.status(404).json({ error: 'No data available for CSV export' });
+    }
+
+    // Send CSV file
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', `attachment; filename="${analysisType}-report.csv"`);
+    res.send(csvContent);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to generate CSV' });
+  }
 });
 
 // Helper function to clean data before analysis
