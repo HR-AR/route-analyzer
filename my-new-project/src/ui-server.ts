@@ -635,12 +635,27 @@ function jsonToCSV(data: any, analysisType: string): string {
 
   // Handle different analysis types
   if (analysisType === 'store-metrics' && data.store_metrics) {
-    // Store metrics CSV
+    // Store metrics CSV - includes all stores and rankings
     csv = 'Store ID,Route Count,Avg DPH,Median DPH,Best DPH,Worst DPH,Batch Density,Total Orders,Delivered Orders,Returned Orders,Pending Orders,Failed Orders,Returns Rate (%),Pending Rate (%),Routes with Pending,Routes with High Pending,Avg Planned Hours,Avg Actual Hours,Avg Variance Hours,Avg Dwell Time (min),Max Dwell Time (min),Avg Load Time (min),Max Load Time (min),Carriers\n';
 
     data.store_metrics.forEach((store: any) => {
       csv += `${store.store_id},${store.route_count},${store.avg_dph},${store.median_dph},${store.best_dph},${store.worst_dph},${store.batch_density},${store.total_orders},${store.delivered_orders},${store.returned_orders},${store.pending_orders},${store.failed_orders},${store.returns_rate},${store.pending_rate},${store.routes_with_pending},${store.routes_with_high_pending},${store.avg_planned_hours},${store.avg_actual_hours},${store.avg_variance_hours},${store.avg_dwell_time},${store.max_dwell_time},${store.avg_load_time},${store.max_load_time},"${store.carriers.join('; ')}"\n`;
     });
+
+    // Add rankings section
+    if (data.top_10_stores && data.bottom_10_stores) {
+      csv += '\n\nTOP 10 BEST PERFORMING STORES (by DPH)\n';
+      csv += 'Rank,Store ID,Route Count,Avg DPH,Batch Density,Returns Rate (%),Pending Rate (%),Avg Variance Hours\n';
+      data.top_10_stores.forEach((store: any, idx: number) => {
+        csv += `${idx + 1},${store.store_id},${store.route_count},${store.avg_dph},${store.batch_density},${store.returns_rate},${store.pending_rate},${store.avg_variance_hours}\n`;
+      });
+
+      csv += '\n\nBOTTOM 10 WORST PERFORMING STORES (by DPH)\n';
+      csv += 'Rank,Store ID,Route Count,Avg DPH,Batch Density,Returns Rate (%),Pending Rate (%),Avg Variance Hours\n';
+      data.bottom_10_stores.forEach((store: any, idx: number) => {
+        csv += `${idx + 1},${store.store_id},${store.route_count},${store.avg_dph},${store.batch_density},${store.returns_rate},${store.pending_rate},${store.avg_variance_hours}\n`;
+      });
+    }
   } else if (analysisType === 'failed-orders' && data.summary) {
     // Failed orders summary CSV
     csv = 'Metric,Value\n';

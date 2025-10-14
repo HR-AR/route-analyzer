@@ -136,6 +136,62 @@ pythonProcess.on('close', (code) => {
     report += `     Delivered: ${route['Delivered Orders']}\n`;
   });
 
+  // ===== STORE-LEVEL RANKINGS =====
+  report += '\n\n' + '='.repeat(80) + '\n';
+  report += 'STORE-LEVEL PERFORMANCE RANKINGS\n';
+  report += '='.repeat(80) + '\n';
+
+  report += '\n\nTOP 10 BEST PERFORMING STORES (Highest DPH)\n';
+  report += '='.repeat(80) + '\n';
+  results.top_10_stores.forEach((store: any, i: number) => {
+    const pendingFlag = store.pending_orders > 0 ? (store.pending_rate > 20 ? '🚨' : '⚠️') : '✓';
+    report += `\n  ${i + 1}. STORE #${store.store_id} (${store.route_count} routes)\n`;
+    report += `     DPH:             ${store.avg_dph} del/hr (median: ${store.median_dph}, range: ${store.worst_dph}-${store.best_dph})\n`;
+    report += `     Batch Density:   ${store.batch_density} orders/route\n`;
+    report += `     Returns Rate:    ${store.returns_rate}% (${store.returned_orders}/${store.total_orders} orders)\n`;
+    report += `     Pending Rate:    ${store.pending_rate}% (${store.pending_orders} orders) ${pendingFlag}\n`;
+    report += `     Variance:        ${store.avg_variance_hours} hrs (Planned: ${store.avg_planned_hours} hrs, Actual: ${store.avg_actual_hours} hrs)\n`;
+    report += `     Dwell Time:      ${store.avg_dwell_time} min avg\n`;
+    report += `     Load Time:       ${store.avg_load_time} min avg\n`;
+  });
+
+  report += '\n\nBOTTOM 10 WORST PERFORMING STORES (Lowest DPH)\n';
+  report += '='.repeat(80) + '\n';
+  results.bottom_10_stores.forEach((store: any, i: number) => {
+    const pendingFlag = store.pending_orders > 0 ? (store.pending_rate > 20 ? '🚨' : '⚠️') : '✓';
+    report += `\n  ${i + 1}. STORE #${store.store_id} (${store.route_count} routes) ⚠️\n`;
+    report += `     DPH:             ${store.avg_dph} del/hr (median: ${store.median_dph}, range: ${store.worst_dph}-${store.best_dph})\n`;
+    report += `     Batch Density:   ${store.batch_density} orders/route\n`;
+    report += `     Returns Rate:    ${store.returns_rate}% (${store.returned_orders}/${store.total_orders} orders)\n`;
+    report += `     Pending Rate:    ${store.pending_rate}% (${store.pending_orders} orders) ${pendingFlag}\n`;
+    report += `     Variance:        ${store.avg_variance_hours} hrs (Planned: ${store.avg_planned_hours} hrs, Actual: ${store.avg_actual_hours} hrs)\n`;
+    report += `     Dwell Time:      ${store.avg_dwell_time} min avg\n`;
+    report += `     Load Time:       ${store.avg_load_time} min avg\n`;
+  });
+
+  report += '\n\nTOP 10 STORES WITH LOWEST RETURNS\n';
+  report += '='.repeat(80) + '\n';
+  results.best_returns_stores.forEach((store: any, i: number) => {
+    report += `\n  ${i + 1}. STORE #${store.store_id}: ${store.returns_rate}% returns (${store.returned_orders}/${store.total_orders} orders)\n`;
+    report += `     DPH: ${store.avg_dph} del/hr | ${store.route_count} routes\n`;
+  });
+
+  report += '\n\nTOP 10 STORES WITH LOWEST PENDING ORDERS\n';
+  report += '='.repeat(80) + '\n';
+  results.best_pending_stores.forEach((store: any, i: number) => {
+    const icon = store.pending_rate === 0 ? '✓' : '⚠️';
+    report += `\n  ${i + 1}. STORE #${store.store_id}: ${store.pending_rate}% pending (${store.pending_orders}/${store.total_orders} orders) ${icon}\n`;
+    report += `     DPH: ${store.avg_dph} del/hr | ${store.route_count} routes\n`;
+  });
+
+  report += '\n\nTOP 10 STORES WITH BEST TIME VARIANCE\n';
+  report += '='.repeat(80) + '\n';
+  results.best_variance_stores.forEach((store: any, i: number) => {
+    const status = store.avg_variance_hours <= 0 ? '✓ Under Plan' : store.avg_variance_hours < 1 ? '⚡ Close' : '⚠️ Over Plan';
+    report += `\n  ${i + 1}. STORE #${store.store_id}: ${store.avg_variance_hours} hrs variance ${status}\n`;
+    report += `     Planned: ${store.avg_planned_hours} hrs | Actual: ${store.avg_actual_hours} hrs | DPH: ${store.avg_dph} del/hr\n`;
+  });
+
   report += '\n\nKEY INSIGHTS & ACTIONS\n';
   report += '='.repeat(80) + '\n';
 

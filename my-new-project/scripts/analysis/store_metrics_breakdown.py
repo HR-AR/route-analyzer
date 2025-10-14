@@ -200,6 +200,25 @@ def analyze_store_metrics(csv_path: str) -> Dict[str, Any]:
          'Pending Rate', 'Delivered Orders']
     ].to_dict('records')
 
+    # ===== TOP/BOTTOM STORES BY PERFORMANCE =====
+    # Create a copy of store_metrics for ranking
+    stores_ranked = store_metrics.copy()
+
+    # Top 10 Best Performing Stores (highest DPH)
+    top_10_stores = sorted(stores_ranked, key=lambda x: x['avg_dph'], reverse=True)[:10]
+
+    # Bottom 10 Worst Performing Stores (lowest DPH)
+    bottom_10_stores = sorted(stores_ranked, key=lambda x: x['avg_dph'])[:10]
+
+    # Top 10 Stores by Lowest Returns Rate
+    best_returns_stores = sorted(stores_ranked, key=lambda x: x['returns_rate'])[:10]
+
+    # Top 10 Stores by Lowest Pending Rate
+    best_pending_stores = sorted(stores_ranked, key=lambda x: x['pending_rate'])[:10]
+
+    # Top 10 Stores by Best Variance (closest to or under planned time)
+    best_variance_stores = sorted(stores_ranked, key=lambda x: x['avg_variance_hours'])[:10]
+
     return {
         'overall': overall,
         'store_metrics': store_metrics,
@@ -207,6 +226,12 @@ def analyze_store_metrics(csv_path: str) -> Dict[str, Any]:
         'worst_dph_routes': worst_dph_routes,
         'highest_returns': highest_returns,
         'highest_pending': highest_pending,
+        # New store-level rankings
+        'top_10_stores': top_10_stores,
+        'bottom_10_stores': bottom_10_stores,
+        'best_returns_stores': best_returns_stores,
+        'best_pending_stores': best_pending_stores,
+        'best_variance_stores': best_variance_stores,
     }
 
 def main():
