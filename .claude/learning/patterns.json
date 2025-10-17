@@ -1,0 +1,23 @@
+{
+  "patterns": [
+    {
+      "signature": "f58004535b6b",
+      "intent": "analysis",
+      "count": 2,
+      "first_seen": "2025-10-17T08:12:30.824818",
+      "last_seen": "2025-10-17T08:12:38.060868",
+      "examples": [
+        {
+          "request": "Analyze the sales data",
+          "instructions": "First load the CSV, then calculate metrics, then create visualizations"
+        },
+        {
+          "request": "Analyze the customer data",
+          "instructions": "First load the CSV, then calculate metrics, then create visualizations"
+        }
+      ],
+      "skill_created": true
+    }
+  ],
+  "skills_created": []
+}
