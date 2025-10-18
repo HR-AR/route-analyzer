@@ -1,0 +1,18 @@
+{
+  "name": "quick-analysis",
+  "version": "1.0.0",
+  "description": "Quick Analysis Dashboard with Skills System",
+  "type": "module",
+  "scripts": {
+    "learn:track": "node scripts/skill-learner.mjs track",
+    "learn:record": "node scripts/skill-learner.mjs record",
+    "learn:list": "node scripts/skill-learner.mjs list",
+    "skill:create": "node scripts/skill-helper.mjs create",
+    "skill:list": "node scripts/skill-helper.mjs list",
+    "start": "node src/index.js",
+    "dev": "nodemon src/index.js"
+  },
+  "keywords": ["analysis", "dashboard", "skills"],
+  "author": "",
+  "license": "ISC"
+}
