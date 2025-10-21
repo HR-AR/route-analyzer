@@ -2,6 +2,22 @@
 
 Automated analysis tool for Dedicated Van Delivery route performance. Identifies extended dwell times, load issues, and route variances with specific dates and store numbers for actionable follow-up.
 
+## 🆕 NEW: Tableau Integration!
+
+**No more manual CSV downloads!** Automatically fetch data from Tableau Server:
+
+```bash
+# Fetch last 7 days and analyze
+npm run fetch-and-analyze -- --days 7
+
+# Deep dive on specific store
+npm run fetch-and-analyze -- --store 5930 --days 30 --analysis driver-store
+```
+
+👉 **See [TABLEAU-SETUP.md](TABLEAU-SETUP.md) for complete Tableau integration guide**
+
+---
+
 ## Quick Start
 
 ### Installation

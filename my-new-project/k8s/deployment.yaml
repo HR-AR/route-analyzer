@@ -1,0 +1,66 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: route-analysis
+  labels:
+    app: route-analysis
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: route-analysis
+  template:
+    metadata:
+      labels:
+        app: route-analysis
+    spec:
+      containers:
+      - name: route-analysis
+        image: route-analysis:latest
+        ports:
+        - containerPort: 3000
+        env:
+        - name: NODE_ENV
+          value: "production"
+        - name: PORT
+          value: "3000"
+        - name: TABLEAU_SERVER
+          valueFrom:
+            secretKeyRef:
+              name: tableau-credentials
+              key: server
+        - name: TABLEAU_USERNAME
+          valueFrom:
+            secretKeyRef:
+              name: tableau-credentials
+              key: username
+        - name: TABLEAU_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: tableau-credentials
+              key: password
+        - name: TABLEAU_AUTH_METHOD
+          value: "password"
+        - name: TABLEAU_WORKBOOK
+          value: "ProjectCentralSummaryDashboard_UAT"
+        - name: TABLEAU_VIEW
+          value: "DailySummary-Agg"
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "250m"
+          limits:
+            memory: "1Gi"
+            cpu: "500m"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 3000
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 3000
+          initialDelaySeconds: 5
+          periodSeconds: 5

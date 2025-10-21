@@ -4,15 +4,12 @@ import { spawn } from 'child_process';
 import { existsSync, unlinkSync, readFileSync } from 'fs';
 import { join } from 'path';
 import { getPythonPath } from './python-helper.js';
-
 const app = express();
 const upload = multer({ dest: 'uploads/' });
-
 const PORT = process.env.PORT ? parseInt(process.env.PORT) : 3000;
-
 // Serve static HTML
 app.get('/', (req, res) => {
-  res.send(`
+    res.send(`
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -626,347 +623,296 @@ app.get('/', (req, res) => {
 </html>
   `);
 });
-
 // Helper function to convert JSON data to CSV
-function jsonToCSV(data: any, analysisType: string): string {
-  if (!data) return '';
-
-  let csv = '';
-
-  // Handle different analysis types
-  if (analysisType === 'store-metrics' && data.store_metrics) {
-    // Store metrics CSV - includes all stores and rankings
-    csv = 'Store ID,Route Count,Avg DPH,Median DPH,Best DPH,Worst DPH,Batch Density,Total Orders,Delivered Orders,Returned Orders,Pending Orders,Failed Orders,Returns Rate (%),Pending Rate (%),Routes with Pending,Routes with High Pending,Avg Planned Hours,Avg Actual Hours,Avg Variance Hours,Avg Dwell Time (min),Max Dwell Time (min),Avg Load Time (min),Max Load Time (min),Carriers\n';
-
-    data.store_metrics.forEach((store: any) => {
-      csv += `${store.store_id},${store.route_count},${store.avg_dph},${store.median_dph},${store.best_dph},${store.worst_dph},${store.batch_density},${store.total_orders},${store.delivered_orders},${store.returned_orders},${store.pending_orders},${store.failed_orders},${store.returns_rate},${store.pending_rate},${store.routes_with_pending},${store.routes_with_high_pending},${store.avg_planned_hours},${store.avg_actual_hours},${store.avg_variance_hours},${store.avg_dwell_time},${store.max_dwell_time},${store.avg_load_time},${store.max_load_time},"${store.carriers.join('; ')}"\n`;
-    });
-
-    // Add rankings section
-    if (data.top_10_stores && data.bottom_10_stores) {
-      csv += '\n\nTOP 10 BEST PERFORMING STORES (by DPH)\n';
-      csv += 'Rank,Store ID,Route Count,Avg DPH,Batch Density,Returns Rate (%),Pending Rate (%),Avg Variance Hours\n';
-      data.top_10_stores.forEach((store: any, idx: number) => {
-        csv += `${idx + 1},${store.store_id},${store.route_count},${store.avg_dph},${store.batch_density},${store.returns_rate},${store.pending_rate},${store.avg_variance_hours}\n`;
-      });
-
-      csv += '\n\nBOTTOM 10 WORST PERFORMING STORES (by DPH)\n';
-      csv += 'Rank,Store ID,Route Count,Avg DPH,Batch Density,Returns Rate (%),Pending Rate (%),Avg Variance Hours\n';
-      data.bottom_10_stores.forEach((store: any, idx: number) => {
-        csv += `${idx + 1},${store.store_id},${store.route_count},${store.avg_dph},${store.batch_density},${store.returns_rate},${store.pending_rate},${store.avg_variance_hours}\n`;
-      });
-    }
-  } else if (analysisType === 'failed-orders' && data.summary) {
-    // Failed orders summary CSV
-    csv = 'Metric,Value\n';
-    csv += `Total Orders,${data.summary.total_orders}\n`;
-    csv += `Failed Orders,${data.summary.failed_orders}\n`;
-    csv += `Failed Rate (%),${data.summary.failed_rate}\n`;
-    csv += `Total Routes,${data.summary.total_routes}\n`;
-    csv += `Routes with Failures,${data.summary.routes_with_failures}\n`;
-    csv += `Routes with Failures (%),${data.summary.routes_with_failures_pct}\n`;
-  } else {
-    // Generic conversion for other analysis types
-    // Try to find the main data array in the JSON
-    const dataArray = data.routes || data.orders || data.results || data.stores || [];
-
-    if (Array.isArray(dataArray) && dataArray.length > 0) {
-      // Get headers from first object
-      const headers = Object.keys(dataArray[0]);
-      csv = headers.join(',') + '\n';
-
-      // Add rows
-      dataArray.forEach((row: any) => {
-        const values = headers.map(header => {
-          const value = row[header];
-          // Handle values with commas or quotes
-          if (typeof value === 'string' && (value.includes(',') || value.includes('"'))) {
-            return `"${value.replace(/"/g, '""')}"`;
-          }
-          return value;
+function jsonToCSV(data, analysisType) {
+    if (!data)
+        return '';
+    let csv = '';
+    // Handle different analysis types
+    if (analysisType === 'store-metrics' && data.store_metrics) {
+        // Store metrics CSV - includes all stores and rankings
+        csv = 'Store ID,Route Count,Avg DPH,Median DPH,Best DPH,Worst DPH,Batch Density,Total Orders,Delivered Orders,Returned Orders,Pending Orders,Failed Orders,Returns Rate (%),Pending Rate (%),Routes with Pending,Routes with High Pending,Avg Planned Hours,Avg Actual Hours,Avg Variance Hours,Avg Dwell Time (min),Max Dwell Time (min),Avg Load Time (min),Max Load Time (min),Carriers\n';
+        data.store_metrics.forEach((store) => {
+            csv += `${store.store_id},${store.route_count},${store.avg_dph},${store.median_dph},${store.best_dph},${store.worst_dph},${store.batch_density},${store.total_orders},${store.delivered_orders},${store.returned_orders},${store.pending_orders},${store.failed_orders},${store.returns_rate},${store.pending_rate},${store.routes_with_pending},${store.routes_with_high_pending},${store.avg_planned_hours},${store.avg_actual_hours},${store.avg_variance_hours},${store.avg_dwell_time},${store.max_dwell_time},${store.avg_load_time},${store.max_load_time},"${store.carriers.join('; ')}"\n`;
         });
-        csv += values.join(',') + '\n';
-      });
-    } else {
-      return 'No data available for CSV export';
+        // Add rankings section
+        if (data.top_10_stores && data.bottom_10_stores) {
+            csv += '\n\nTOP 10 BEST PERFORMING STORES (by DPH)\n';
+            csv += 'Rank,Store ID,Route Count,Avg DPH,Batch Density,Returns Rate (%),Pending Rate (%),Avg Variance Hours\n';
+            data.top_10_stores.forEach((store, idx) => {
+                csv += `${idx + 1},${store.store_id},${store.route_count},${store.avg_dph},${store.batch_density},${store.returns_rate},${store.pending_rate},${store.avg_variance_hours}\n`;
+            });
+            csv += '\n\nBOTTOM 10 WORST PERFORMING STORES (by DPH)\n';
+            csv += 'Rank,Store ID,Route Count,Avg DPH,Batch Density,Returns Rate (%),Pending Rate (%),Avg Variance Hours\n';
+            data.bottom_10_stores.forEach((store, idx) => {
+                csv += `${idx + 1},${store.store_id},${store.route_count},${store.avg_dph},${store.batch_density},${store.returns_rate},${store.pending_rate},${store.avg_variance_hours}\n`;
+            });
+        }
     }
-  }
-
-  return csv;
+    else if (analysisType === 'failed-orders' && data.summary) {
+        // Failed orders summary CSV
+        csv = 'Metric,Value\n';
+        csv += `Total Orders,${data.summary.total_orders}\n`;
+        csv += `Failed Orders,${data.summary.failed_orders}\n`;
+        csv += `Failed Rate (%),${data.summary.failed_rate}\n`;
+        csv += `Total Routes,${data.summary.total_routes}\n`;
+        csv += `Routes with Failures,${data.summary.routes_with_failures}\n`;
+        csv += `Routes with Failures (%),${data.summary.routes_with_failures_pct}\n`;
+    }
+    else {
+        // Generic conversion for other analysis types
+        // Try to find the main data array in the JSON
+        const dataArray = data.routes || data.orders || data.results || data.stores || [];
+        if (Array.isArray(dataArray) && dataArray.length > 0) {
+            // Get headers from first object
+            const headers = Object.keys(dataArray[0]);
+            csv = headers.join(',') + '\n';
+            // Add rows
+            dataArray.forEach((row) => {
+                const values = headers.map(header => {
+                    const value = row[header];
+                    // Handle values with commas or quotes
+                    if (typeof value === 'string' && (value.includes(',') || value.includes('"'))) {
+                        return `"${value.replace(/"/g, '""')}"`;
+                    }
+                    return value;
+                });
+                csv += values.join(',') + '\n';
+            });
+        }
+        else {
+            return 'No data available for CSV export';
+        }
+    }
+    return csv;
 }
-
 // Download JSON endpoint
 app.post('/download-json', express.json(), (req, res) => {
-  const { analysisType, storeNumber } = req.body;
-
-  const jsonPatterns: Record<string, string> = {
-    'store-metrics': 'store-metrics-data.json',
-    'driver-store-analysis': `driver-store-${storeNumber}-data.json`,
-    'multiday-analysis': `multiday-analysis-${storeNumber}-data.json`,
-    'time-breakdown': 'time-breakdown-data.json',
-    'store-analysis': `store-${storeNumber}-analysis-data.json`,
-    'returns-breakdown': 'returns-breakdown-data.json',
-    'pending-orders': 'pending-orders-data.json',
-    'failed-orders': 'failed-orders-data.json'
-  };
-
-  const jsonFile = jsonPatterns[analysisType];
-  if (!jsonFile || !existsSync(jsonFile)) {
-    return res.status(404).json({ error: 'JSON data not found' });
-  }
-
-  res.sendFile(jsonFile, { root: process.cwd() });
+    const { analysisType, storeNumber } = req.body;
+    const jsonPatterns = {
+        'store-metrics': 'store-metrics-data.json',
+        'driver-store-analysis': `driver-store-${storeNumber}-data.json`,
+        'multiday-analysis': `multiday-analysis-${storeNumber}-data.json`,
+        'time-breakdown': 'time-breakdown-data.json',
+        'store-analysis': `store-${storeNumber}-analysis-data.json`,
+        'returns-breakdown': 'returns-breakdown-data.json',
+        'pending-orders': 'pending-orders-data.json',
+        'failed-orders': 'failed-orders-data.json'
+    };
+    const jsonFile = jsonPatterns[analysisType];
+    if (!jsonFile || !existsSync(jsonFile)) {
+        return res.status(404).json({ error: 'JSON data not found' });
+    }
+    res.sendFile(jsonFile, { root: process.cwd() });
 });
-
 // Download CSV endpoint
 app.post('/download-csv', express.json(), (req, res) => {
-  const { analysisType, storeNumber } = req.body;
-
-  const jsonPatterns: Record<string, string> = {
-    'store-metrics': 'store-metrics-data.json',
-    'driver-store-analysis': `driver-store-${storeNumber}-data.json`,
-    'multiday-analysis': `multiday-analysis-${storeNumber}-data.json`,
-    'time-breakdown': 'time-breakdown-data.json',
-    'store-analysis': `store-${storeNumber}-analysis-data.json`,
-    'returns-breakdown': 'returns-breakdown-data.json',
-    'pending-orders': 'pending-orders-data.json',
-    'failed-orders': 'failed-orders-data.json'
-  };
-
-  const jsonFile = jsonPatterns[analysisType];
-  if (!jsonFile || !existsSync(jsonFile)) {
-    return res.status(404).json({ error: 'Data not available for CSV export' });
-  }
-
-  try {
-    // Read JSON file
-    const jsonData = JSON.parse(readFileSync(jsonFile, 'utf-8'));
-
-    // Convert to CSV
-    const csvContent = jsonToCSV(jsonData, analysisType);
-
-    if (!csvContent || csvContent === 'No data available for CSV export') {
-      return res.status(404).json({ error: 'No data available for CSV export' });
+    const { analysisType, storeNumber } = req.body;
+    const jsonPatterns = {
+        'store-metrics': 'store-metrics-data.json',
+        'driver-store-analysis': `driver-store-${storeNumber}-data.json`,
+        'multiday-analysis': `multiday-analysis-${storeNumber}-data.json`,
+        'time-breakdown': 'time-breakdown-data.json',
+        'store-analysis': `store-${storeNumber}-analysis-data.json`,
+        'returns-breakdown': 'returns-breakdown-data.json',
+        'pending-orders': 'pending-orders-data.json',
+        'failed-orders': 'failed-orders-data.json'
+    };
+    const jsonFile = jsonPatterns[analysisType];
+    if (!jsonFile || !existsSync(jsonFile)) {
+        return res.status(404).json({ error: 'Data not available for CSV export' });
     }
-
-    // Send CSV file
-    res.setHeader('Content-Type', 'text/csv');
-    res.setHeader('Content-Disposition', `attachment; filename="${analysisType}-report.csv"`);
-    res.send(csvContent);
-  } catch (error) {
-    res.status(500).json({ error: 'Failed to generate CSV' });
-  }
+    try {
+        // Read JSON file
+        const jsonData = JSON.parse(readFileSync(jsonFile, 'utf-8'));
+        // Convert to CSV
+        const csvContent = jsonToCSV(jsonData, analysisType);
+        if (!csvContent || csvContent === 'No data available for CSV export') {
+            return res.status(404).json({ error: 'No data available for CSV export' });
+        }
+        // Send CSV file
+        res.setHeader('Content-Type', 'text/csv');
+        res.setHeader('Content-Disposition', `attachment; filename="${analysisType}-report.csv"`);
+        res.send(csvContent);
+    }
+    catch (error) {
+        res.status(500).json({ error: 'Failed to generate CSV' });
+    }
 });
-
 // Helper function to clean data before analysis
-async function cleanData(filePath: string): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const cleanedPath = filePath.replace('.csv', '_cleaned.csv');
-    // Python script is now in the same directory as the project
-    const pythonScript = join(process.cwd(), 'clean_data_cli.py');
-    const pythonPath = getPythonPath();
-
-    console.log(`Cleaning data: ${pythonScript} ${filePath} ${cleanedPath}`);
-    console.log(`Python: ${pythonPath}`);
-    console.log(`Working directory: ${process.cwd()}`);
-
-    const pythonProcess = spawn(pythonPath, [pythonScript, filePath, cleanedPath], {
-      cwd: process.cwd(),  // Stay in my-new-project directory
-      env: process.env
+async function cleanData(filePath) {
+    return new Promise((resolve, reject) => {
+        const cleanedPath = filePath.replace('.csv', '_cleaned.csv');
+        // Python script is now in the same directory as the project
+        const pythonScript = join(process.cwd(), 'clean_data_cli.py');
+        const pythonPath = getPythonPath();
+        console.log(`Cleaning data: ${pythonScript} ${filePath} ${cleanedPath}`);
+        console.log(`Python: ${pythonPath}`);
+        console.log(`Working directory: ${process.cwd()}`);
+        const pythonProcess = spawn(pythonPath, [pythonScript, filePath, cleanedPath], {
+            cwd: process.cwd(), // Stay in my-new-project directory
+            env: process.env
+        });
+        let stdout = '';
+        let stderr = '';
+        pythonProcess.stdout.on('data', (data) => {
+            stdout += data.toString();
+        });
+        pythonProcess.stderr.on('data', (data) => {
+            stderr += data.toString();
+        });
+        pythonProcess.on('error', (error) => {
+            reject(new Error('Failed to start data cleaning: ' + error.message));
+        });
+        pythonProcess.on('close', (code) => {
+            if (code !== 0) {
+                console.error('Data cleaning failed:', stderr);
+                reject(new Error('Data cleaning failed: ' + stderr));
+                return;
+            }
+            // Log cleaning report
+            if (stderr) {
+                console.log('Data Cleaning Report:', stderr);
+            }
+            // Extract cleaned file path from stdout
+            const cleanedFilePath = stdout.trim().split('\n').pop() || cleanedPath;
+            if (!existsSync(cleanedFilePath)) {
+                reject(new Error('Cleaned file was not created'));
+                return;
+            }
+            console.log(`✓ Data cleaned successfully: ${cleanedFilePath}`);
+            resolve(cleanedFilePath);
+        });
     });
-
-    let stdout = '';
-    let stderr = '';
-
-    pythonProcess.stdout.on('data', (data) => {
-      stdout += data.toString();
-    });
-
-    pythonProcess.stderr.on('data', (data) => {
-      stderr += data.toString();
-    });
-
-    pythonProcess.on('error', (error) => {
-      reject(new Error('Failed to start data cleaning: ' + error.message));
-    });
-
-    pythonProcess.on('close', (code) => {
-      if (code !== 0) {
-        console.error('Data cleaning failed:', stderr);
-        reject(new Error('Data cleaning failed: ' + stderr));
-        return;
-      }
-
-      // Log cleaning report
-      if (stderr) {
-        console.log('Data Cleaning Report:', stderr);
-      }
-
-      // Extract cleaned file path from stdout
-      const cleanedFilePath = stdout.trim().split('\n').pop() || cleanedPath;
-
-      if (!existsSync(cleanedFilePath)) {
-        reject(new Error('Cleaned file was not created'));
-        return;
-      }
-
-      console.log(`✓ Data cleaned successfully: ${cleanedFilePath}`);
-      resolve(cleanedFilePath);
-    });
-  });
 }
-
 // Analysis endpoint
 app.post('/analyze', upload.single('file'), async (req, res) => {
-  if (!req.file) {
-    return res.status(400).json({ error: 'No file uploaded' });
-  }
-
-  const { analysis, storeNumber, topN } = req.body;
-  const filePath = req.file.path;
-
-  console.log(`File uploaded to: ${filePath}, exists: ${existsSync(filePath)}, size: ${req.file.size} bytes`);
-
-  let cleanedFilePath: string | null = null;
-
-  try {
-    // For failed orders analysis, use RAW data (don't clean)
-    // This preserves the original failed orders count before any data manipulation
-    const useRawData = analysis === 'failed-orders';
-
-    let analysisFilePath = filePath;
-
-    if (!useRawData) {
-      // Clean data for all other analyses
-      console.log('🧹 Cleaning data before analysis...');
-      cleanedFilePath = await cleanData(filePath);
-      analysisFilePath = cleanedFilePath;
-    } else {
-      console.log('📊 Using RAW data for failed orders analysis (preserves original counts)...');
+    if (!req.file) {
+        return res.status(400).json({ error: 'No file uploaded' });
     }
-
-    // Run analysis
-    const report = await runAnalysis(analysis, analysisFilePath, storeNumber, topN);
-
-    res.json({ report });
-  } catch (error) {
-    res.status(500).json({
-      error: error instanceof Error ? error.message : 'Analysis failed'
-    });
-  } finally {
-    // Clean up uploaded and cleaned files
-    if (existsSync(filePath)) {
-      unlinkSync(filePath);
+    const { analysis, storeNumber, topN } = req.body;
+    const filePath = req.file.path;
+    console.log(`File uploaded to: ${filePath}, exists: ${existsSync(filePath)}, size: ${req.file.size} bytes`);
+    let cleanedFilePath = null;
+    try {
+        // For failed orders analysis, use RAW data (don't clean)
+        // This preserves the original failed orders count before any data manipulation
+        const useRawData = analysis === 'failed-orders';
+        let analysisFilePath = filePath;
+        if (!useRawData) {
+            // Clean data for all other analyses
+            console.log('🧹 Cleaning data before analysis...');
+            cleanedFilePath = await cleanData(filePath);
+            analysisFilePath = cleanedFilePath;
+        }
+        else {
+            console.log('📊 Using RAW data for failed orders analysis (preserves original counts)...');
+        }
+        // Run analysis
+        const report = await runAnalysis(analysis, analysisFilePath, storeNumber, topN);
+        res.json({ report });
     }
-    if (cleanedFilePath && existsSync(cleanedFilePath)) {
-      unlinkSync(cleanedFilePath);
+    catch (error) {
+        res.status(500).json({
+            error: error instanceof Error ? error.message : 'Analysis failed'
+        });
     }
-  }
+    finally {
+        // Clean up uploaded and cleaned files
+        if (existsSync(filePath)) {
+            unlinkSync(filePath);
+        }
+        if (cleanedFilePath && existsSync(cleanedFilePath)) {
+            unlinkSync(cleanedFilePath);
+        }
+    }
 });
-
-function runAnalysis(analysisType: string, filePath: string, storeNumber?: string, topN?: string): Promise<string> {
-  return new Promise((resolve, reject) => {
-    // Use npm run commands which call the TypeScript wrappers
-    // These wrappers handle formatting and generating .txt reports
-    const npmScriptMap: Record<string, string> = {
-      'store-metrics': 'store-metrics',
-      'driver-store-analysis': 'driver-store-analysis',
-      'multiday-analysis': 'multiday-analysis',
-      'time-breakdown': 'time-breakdown',
-      'store-analysis': 'store-analysis',
-      'returns-breakdown': 'returns-breakdown',
-      'pending-orders': 'pending-orders',
-      'failed-orders': 'failed-orders-analysis'
-    };
-
-    const npmScript = npmScriptMap[analysisType];
-    if (!npmScript) {
-      reject(new Error('Invalid analysis type'));
-      return;
-    }
-
-    // Build command arguments
-    const args = ['run', npmScript, '--'];
-    if (topN && (analysisType === 'returns-breakdown' || analysisType === 'pending-orders')) {
-      // For returns and pending orders, topN comes first
-      args.push(topN === 'all' ? 'all' : topN);
-    }
-    if (storeNumber) {
-      args.push(storeNumber);
-    }
-    args.push(filePath);
-
-    console.log('Running: npm ' + args.join(' '));
-
-    const npmProcess = spawn('npm', args, {
-      cwd: process.cwd(),
-      env: { ...process.env, FORCE_COLOR: '0' }, // Disable colors
-      shell: true // Use shell for npm on all platforms
+function runAnalysis(analysisType, filePath, storeNumber, topN) {
+    return new Promise((resolve, reject) => {
+        // Use npm run commands which call the TypeScript wrappers
+        // These wrappers handle formatting and generating .txt reports
+        const npmScriptMap = {
+            'store-metrics': 'store-metrics',
+            'driver-store-analysis': 'driver-store-analysis',
+            'multiday-analysis': 'multiday-analysis',
+            'time-breakdown': 'time-breakdown',
+            'store-analysis': 'store-analysis',
+            'returns-breakdown': 'returns-breakdown',
+            'pending-orders': 'pending-orders',
+            'failed-orders': 'failed-orders-analysis'
+        };
+        const npmScript = npmScriptMap[analysisType];
+        if (!npmScript) {
+            reject(new Error('Invalid analysis type'));
+            return;
+        }
+        // Build command arguments
+        const args = ['run', npmScript, '--'];
+        if (topN && (analysisType === 'returns-breakdown' || analysisType === 'pending-orders')) {
+            // For returns and pending orders, topN comes first
+            args.push(topN === 'all' ? 'all' : topN);
+        }
+        if (storeNumber) {
+            args.push(storeNumber);
+        }
+        args.push(filePath);
+        console.log('Running: npm ' + args.join(' '));
+        const npmProcess = spawn('npm', args, {
+            cwd: process.cwd(),
+            env: { ...process.env, FORCE_COLOR: '0' }, // Disable colors
+            shell: true // Use shell for npm on all platforms
+        });
+        let output = '';
+        let errorOutput = '';
+        npmProcess.stdout.on('data', (data) => {
+            output += data.toString();
+        });
+        npmProcess.stderr.on('data', (data) => {
+            errorOutput += data.toString();
+        });
+        npmProcess.on('error', (error) => {
+            reject(new Error('Failed to start npm: ' + error.message));
+        });
+        npmProcess.on('close', (code) => {
+            if (code !== 0) {
+                console.log(`npm process failed with code ${code}`);
+                console.log(`Error output: ${errorOutput}`);
+                reject(new Error(errorOutput || 'Analysis failed'));
+                return;
+            }
+            // Try to find the report file
+            const reportPatterns = {
+                'store-metrics': 'store-metrics-report.txt',
+                'driver-store-analysis': `driver-store-${storeNumber}-report.txt`,
+                'multiday-analysis': `multiday-analysis-${storeNumber}-report.txt`,
+                'time-breakdown': 'time-breakdown-report.txt',
+                'store-analysis': `store-${storeNumber}-analysis-report.txt`,
+                'returns-breakdown': 'returns-breakdown-report.txt',
+                'pending-orders': 'pending-orders-report.txt',
+                'failed-orders': 'failed-orders-analysis-report.txt'
+            };
+            const reportFile = reportPatterns[analysisType];
+            if (reportFile && existsSync(reportFile)) {
+                const report = readFileSync(reportFile, 'utf-8');
+                resolve(report);
+            }
+            else {
+                // Fall back to stdout
+                resolve(output || 'Analysis completed but no report file generated');
+            }
+        });
     });
-
-    let output = '';
-    let errorOutput = '';
-
-    npmProcess.stdout.on('data', (data) => {
-      output += data.toString();
-    });
-
-    npmProcess.stderr.on('data', (data) => {
-      errorOutput += data.toString();
-    });
-
-    npmProcess.on('error', (error) => {
-      reject(new Error('Failed to start npm: ' + error.message));
-    });
-
-    npmProcess.on('close', (code) => {
-      if (code !== 0) {
-        console.log(`npm process failed with code ${code}`);
-        console.log(`Error output: ${errorOutput}`);
-        reject(new Error(errorOutput || 'Analysis failed'));
-        return;
-      }
-
-      // Try to find the report file
-      const reportPatterns: Record<string, string> = {
-        'store-metrics': 'store-metrics-report.txt',
-        'driver-store-analysis': `driver-store-${storeNumber}-report.txt`,
-        'multiday-analysis': `multiday-analysis-${storeNumber}-report.txt`,
-        'time-breakdown': 'time-breakdown-report.txt',
-        'store-analysis': `store-${storeNumber}-analysis-report.txt`,
-        'returns-breakdown': 'returns-breakdown-report.txt',
-        'pending-orders': 'pending-orders-report.txt',
-        'failed-orders': 'failed-orders-analysis-report.txt'
-      };
-
-      const reportFile = reportPatterns[analysisType];
-      if (reportFile && existsSync(reportFile)) {
-        const report = readFileSync(reportFile, 'utf-8');
-        resolve(report);
-      } else {
-        // Fall back to stdout
-        resolve(output || 'Analysis completed but no report file generated');
-      }
-    });
-  });
 }
-
 // Health check endpoint for Render
 app.get('/health', (req, res) => {
-  res.status(200).json({
-    status: 'healthy',
-    timestamp: new Date().toISOString(),
-    service: 'route-analysis-dashboard'
-  });
+    res.status(200).json({
+        status: 'healthy',
+        timestamp: new Date().toISOString(),
+        service: 'route-analysis-dashboard'
+    });
 });
-
-// Health check endpoint for deployment monitoring
-app.get('/health', (req, res) => {
-  res.status(200).json({ status: 'healthy', timestamp: new Date().toISOString() });
-});
-
 app.listen(PORT, () => {
-  console.log(`
+    console.log(`
 ╔════════════════════════════════════════════╗
 ║   Route Analysis Tool - Web Interface     ║
 ╚════════════════════════════════════════════╝
@@ -977,3 +923,4 @@ app.listen(PORT, () => {
 Press Ctrl+C to stop the server
   `);
 });
+//# sourceMappingURL=ui-server-backup.js.map

@@ -10,16 +10,12 @@ import { getPythonPath } from './python-helper.js';
 async function runFailedOrdersAnalysis(args) {
     const { csvPath } = args;
     return new Promise((resolve, reject) => {
-        const parentDir = join(process.cwd(), '..');
-        const pythonScript = join(parentDir, 'failed_orders_analyzer.py');
+        const pythonScript = join(process.cwd(), 'failed_orders_analyzer.py');
         const pythonPath = getPythonPath();
         console.error(`Running failed orders analysis on: ${csvPath}`);
         const pythonProcess = spawn(pythonPath, [pythonScript, csvPath], {
             cwd: process.cwd(), // Run in my-new-project directory so output files are saved here
-            env: {
-                ...process.env,
-                PYTHONPATH: parentDir
-            },
+            env: process.env,
             stdio: ['inherit', 'pipe', 'pipe']
         });
         let stdout = '';

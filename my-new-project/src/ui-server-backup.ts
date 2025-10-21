@@ -960,11 +960,6 @@ app.get('/health', (req, res) => {
   });
 });
 
-// Health check endpoint for deployment monitoring
-app.get('/health', (req, res) => {
-  res.status(200).json({ status: 'healthy', timestamp: new Date().toISOString() });
-});
-
 app.listen(PORT, () => {
   console.log(`
 ╔════════════════════════════════════════════╗
