@@ -24,7 +24,10 @@ const storage = multer.diskStorage({
 const upload = multer({ storage });
 // Middleware
 app.use(express.json());
-app.use(express.static('public'));
+// Serve static files from public directory
+const publicPath = join(process.cwd(), 'public');
+console.log('📁 Serving static files from:', publicPath);
+app.use(express.static(publicPath));
 // ===== API ENDPOINTS =====
 // POST /api/analyze - Run analysis on uploaded CSV
 app.post('/api/analyze', upload.single('csv'), async (req, res) => {

@@ -12,6 +12,6 @@ export function getPythonPath(): string {
   if (existsSync(venvPython)) {
     return venvPython;
   }
-  // Fall back to system Python (Render deployment)
-  return 'python3';
+  // Use full path to ensure we get the Homebrew Python with all packages
+  return '/opt/homebrew/bin/python3';
 }
