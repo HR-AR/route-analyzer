@@ -2,18 +2,26 @@ import express from 'express';
 import multer from 'multer';
 import { spawn } from 'child_process';
 import { existsSync, readFileSync, unlinkSync, mkdirSync } from 'fs';
-import { join, resolve, basename } from 'path';
+import { join, resolve, basename, dirname } from 'path';
+import { fileURLToPath } from 'url';
 import { getPythonPath } from './python-helper.js';
 import { generateReport } from './report-generator-v2.js';
 const app = express();
 const PORT = process.env.PORT ? parseInt(process.env.PORT) : 3003;
-// Ensure directories exist
-const UPLOAD_DIR = 'uploads';
-const DATA_DIR = 'data';
+// Get the directory of this file (works in ES modules)
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+// Base directory is the parent of dist/ (i.e., my-new-project/)
+const BASE_DIR = resolve(__dirname, '..');
+// Scripts directory is in the parent directory (for Render deployment)
+const SCRIPTS_DIR = resolve(BASE_DIR, '..', 'scripts');
+// Ensure directories exist (relative to BASE_DIR)
+const UPLOAD_DIR = join(BASE_DIR, 'uploads');
+const DATA_DIR = join(BASE_DIR, 'data');
 if (!existsSync(UPLOAD_DIR))
-    mkdirSync(UPLOAD_DIR);
+    mkdirSync(UPLOAD_DIR, { recursive: true });
 if (!existsSync(DATA_DIR))
-    mkdirSync(DATA_DIR);
+    mkdirSync(DATA_DIR, { recursive: true });
 // Configure multer for file uploads
 const storage = multer.diskStorage({
     destination: (req, file, cb) => cb(null, UPLOAD_DIR),
@@ -25,8 +33,8 @@ const storage = multer.diskStorage({
 const upload = multer({ storage });
 // Middleware
 app.use(express.json());
-// Serve static files from public directory
-const publicPath = join(process.cwd(), 'public');
+// Serve static files from public directory (relative to BASE_DIR)
+const publicPath = join(BASE_DIR, 'public');
 console.log('📁 Serving static files from:', publicPath);
 app.use(express.static(publicPath));
 // ===== API ENDPOINTS =====
@@ -71,7 +79,7 @@ app.post('/api/analyze-path', async (req, res) => {
 app.get('/api/tableau-fetch', async (req, res) => {
     try {
         const { days, startDate, endDate, store } = req.query;
-        const args = ['./scripts/tableau_fetcher.py'];
+        const args = [join(SCRIPTS_DIR, 'tableau_fetcher.py')];
         const outputPath = join(DATA_DIR, `tableau-${Date.now()}.csv`);
         args.push('--output', outputPath);
         if (days)
@@ -111,7 +119,7 @@ app.get('/api/bigquery-fetch', async (req, res) => {
     try {
         const { days, carrier, client, type, oversized } = req.query;
         const pythonPath = getPythonPath();
-        const args = ['./scripts/auto_fetch_bigquery.py'];
+        const args = [join(SCRIPTS_DIR, 'auto_fetch_bigquery.py')];
         const outputPath = join(DATA_DIR, `bigquery-${Date.now()}.csv`);
         args.push('--output', outputPath);
         if (days)
@@ -130,7 +138,7 @@ app.get('/api/bigquery-fetch', async (req, res) => {
         if (existsSync(outputPath)) {
             // Convert BigQuery format to Tableau-compatible format
             const tableauPath = outputPath.replace('.csv', '-tableau.csv');
-            const convertArgs = ['./scripts/convert_bigquery_to_tableau_format.py', outputPath, tableauPath];
+            const convertArgs = [join(SCRIPTS_DIR, 'convert_bigquery_to_tableau_format.py'), outputPath, tableauPath];
             console.log('Converting BigQuery data to Tableau format...');
             await runPythonScript(convertArgs);
             // Count rows
@@ -192,7 +200,7 @@ app.post('/api/merge-csv', upload.array('files'), async (req, res) => {
         const filePaths = files.map(f => f.path);
         const outputPath = join(DATA_DIR, `merged-${Date.now()}.csv`);
         const args = [
-            './scripts/merge_csv_files.py',
+            join(SCRIPTS_DIR, 'merge_csv_files.py'),
             ...filePaths,
             '-o', outputPath
         ];
@@ -235,52 +243,52 @@ function runPythonAnalysis(analysisType, csvPath, storeId, additionalParams = {}
         switch (analysisType) {
             case 'bigquery-metrics':
                 // Use old basic metrics script
-                scriptPath = './scripts/analysis/bigquery_metrics_analysis.py';
+                scriptPath = join(SCRIPTS_DIR, 'analysis', 'bigquery_metrics_analysis.py');
                 args = [];
                 break;
             case 'bigquery-kpi':
                 // Use new leadership KPI analysis
-                scriptPath = './scripts/analysis/bigquery_kpi_analysis.py';
+                scriptPath = join(SCRIPTS_DIR, 'analysis', 'bigquery_kpi_analysis.py');
                 args = [];
                 break;
             case 'tableau-metrics':
-                scriptPath = './scripts/analysis/tableau_metrics_analysis.py';
+                scriptPath = join(SCRIPTS_DIR, 'analysis', 'tableau_metrics_analysis.py');
                 args = [];
                 break;
             case 'store-metrics':
-                scriptPath = './scripts/analysis/store_metrics_breakdown.py';
+                scriptPath = join(SCRIPTS_DIR, 'analysis', 'store_metrics_breakdown.py');
                 args = [];
                 break;
             case 'driver-store':
-                scriptPath = './scripts/analysis/driver_store_analysis.py';
+                scriptPath = join(SCRIPTS_DIR, 'analysis', 'driver_store_analysis.py');
                 args = storeId ? [storeId] : [];
                 break;
             case 'multiday':
-                scriptPath = './scripts/analysis/multiday_route_analysis.py';
+                scriptPath = join(SCRIPTS_DIR, 'analysis', 'multiday_route_analysis.py');
                 args = storeId ? [storeId] : [];
                 break;
             case 'time-breakdown':
-                scriptPath = './scripts/analysis/detailed_time_analysis.py';
+                scriptPath = join(SCRIPTS_DIR, 'analysis', 'detailed_time_analysis.py');
                 args = [];
                 break;
             case 'returns':
-                scriptPath = './scripts/analysis/returns_breakdown.py';
+                scriptPath = join(SCRIPTS_DIR, 'analysis', 'returns_breakdown.py');
                 args = [];
                 break;
             case 'store-analysis':
-                scriptPath = './scripts/analysis/store_specific_analysis.py';
+                scriptPath = join(SCRIPTS_DIR, 'analysis', 'store_specific_analysis.py');
                 args = storeId ? [storeId] : [];
                 break;
             case 'pending-orders':
-                scriptPath = './scripts/analysis/pending_orders_analysis.py';
+                scriptPath = join(SCRIPTS_DIR, 'analysis', 'pending_orders_analysis.py');
                 args = [];
                 break;
             case 'failed-orders':
-                scriptPath = './scripts/analysis/route_analyzer.py'; // This has failed orders analysis
+                scriptPath = join(SCRIPTS_DIR, 'analysis', 'route_analyzer.py'); // This has failed orders analysis
                 args = [];
                 break;
             default:
-                scriptPath = './scripts/analysis/store_metrics_breakdown.py';
+                scriptPath = join(SCRIPTS_DIR, 'analysis', 'store_metrics_breakdown.py');
                 args = [];
         }
         const pythonProcess = spawn(getPythonPath(), [scriptPath]);
