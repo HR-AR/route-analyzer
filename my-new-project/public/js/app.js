@@ -290,12 +290,15 @@ async function fetchTableauData(days, startDate, endDate, storeId) {
     
     const result = await response.json();
     hideLoading();
-    showNotification(`Successfully fetched ${result.rows} rows from Tableau!`, 'success');
-    
-    // Auto-run analysis on fetched data
-    if (result.filePath) {
-      await runAnalysisOnPath(result.filePath);
+
+    let message = `Successfully fetched ${result.rows} rows from Tableau!`;
+    if (result.note) {
+      message += `\n\n${result.note}`;
     }
+    showNotification(message, 'success');
+
+    // Don't auto-run analysis - Tableau data has different format
+    // User can download the CSV file from data/ folder
   } catch (error) {
     hideLoading();
     showNotification(`Error: ${error.message}`, 'error');

@@ -6,7 +6,7 @@ import { join } from 'path';
 import { getPythonPath } from './python-helper.js';
 
 const app = express();
-const PORT = process.env.PORT ? parseInt(process.env.PORT) : 3000;
+const PORT = process.env.PORT ? parseInt(process.env.PORT) : 3003;
 
 // Ensure directories exist
 const UPLOAD_DIR = 'uploads';
@@ -106,7 +106,8 @@ app.get('/api/tableau-fetch', async (req, res) => {
         success: true,
         filePath: outputPath,
         rows,
-        message: 'Data fetched successfully'
+        message: 'Data fetched successfully',
+        note: 'Tableau data format is different from route analysis format. Download the CSV to view the data.'
       });
     } else {
       throw new Error('Failed to fetch data from Tableau');
@@ -255,7 +256,9 @@ function runPythonAnalysis(analysisType: string, csvPath: string, storeId?: stri
 
 function runPythonScript(args: string[]): Promise<string> {
   return new Promise((resolve, reject) => {
-    const pythonProcess = spawn(getPythonPath(), args);
+    const pythonPath = getPythonPath();
+    console.log(`🐍 Executing Python: ${pythonPath} ${args.join(' ')}`);
+    const pythonProcess = spawn(pythonPath, args);
 
     let stdout = '';
     let stderr = '';

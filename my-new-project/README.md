@@ -7,14 +7,18 @@ Automated analysis tool for Dedicated Van Delivery route performance. Identifies
 **No more manual CSV downloads!** Automatically fetch data from Tableau Server:
 
 ```bash
-# Fetch last 7 days and analyze
-npm run fetch-and-analyze -- --days 7
+# Quick fetch: Nash + Walmart + OS=0 data
+npm run fetch-nash
 
-# Deep dive on specific store
-npm run fetch-and-analyze -- --store 5930 --days 30 --analysis driver-store
+# Custom filters
+python3 scripts/tableau_fetcher.py --carrier nash --os 0 --client Walmart --days 7
+
+# Fetch and analyze
+npm run fetch-and-analyze -- --days 7
 ```
 
-👉 **See [TABLEAU-SETUP.md](TABLEAU-SETUP.md) for complete Tableau integration guide**
+👉 **See [TABLEAU-DATA-FETCHING.md](TABLEAU-DATA-FETCHING.md) for complete data fetching guide**  
+👉 **See [WALMART-HOSTING-GUIDE.md](WALMART-HOSTING-GUIDE.md) to host this tool and share with your team**
 
 ---
 

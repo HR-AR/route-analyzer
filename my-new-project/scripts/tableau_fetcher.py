@@ -180,6 +180,14 @@ class TableauFetcher:
             'X-Tableau-Auth': self.auth_token,
         }
         
+        # Build filter parameters using vf_ prefix (Tableau view filters)
+        params = {}
+        if filters:
+            for filter_name, filter_value in filters.items():
+                # Tableau uses vf_<field_name>=<value> for view filters
+                params[f'vf_{filter_name}'] = filter_value
+            print(f"🔍 Applying filters: {params}")
+        
         # Try different accept types
         accept_types = [
             'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',  # Excel
@@ -192,9 +200,7 @@ class TableauFetcher:
                 print(f"📥 Querying view data (format: {accept_type.split('/')[-1]})...")
                 headers['Accept'] = accept_type
                 
-                # Don't use filters in the URL params - they don't work well
-                # We'll need to apply them differently or just get all data
-                response = requests.get(url, headers=headers, verify=False, timeout=60)
+                response = requests.get(url, headers=headers, params=params, verify=False, timeout=60)
                 
                 if response.status_code == 200:
                     print(f"✅ Successfully downloaded data ({len(response.content)} bytes)")
@@ -221,8 +227,11 @@ class TableauFetcher:
                    output_file: str,
                    start_date: Optional[str] = None,
                    end_date: Optional[str] = None,
-                   store_id: Optional[str] = None) -> str:
-        """Fetch data from Tableau and save as CSV"""
+                   store_id: Optional[str] = None,
+                   carrier: Optional[str] = None,
+                   os_filter: Optional[str] = None,
+                   client: Optional[str] = None) -> str:
+        """Fetch data from Tableau and save as CSV/Excel"""
         
         try:
             # Sign in
@@ -239,16 +248,59 @@ class TableauFetcher:
                 filters['End Date'] = end_date
             if store_id:
                 filters['Store Id'] = store_id
+            if carrier:
+                filters['Carrier'] = carrier
+            if os_filter:
+                filters['OS'] = os_filter
+            if client:
+                filters['Client'] = client
             
             # Query data
-            csv_data = self.query_view_data(view_id, filters)
+            data = self.query_view_data(view_id, filters)
             
             # Save to file
             output_path = Path(output_file)
             output_path.parent.mkdir(parents=True, exist_ok=True)
-            output_path.write_bytes(csv_data)
             
-            print(f"💾 Data saved to: {output_file}")
+            # Check if data is Excel format and convert to CSV if needed
+            if output_file.endswith('.csv'):
+                # Try to detect if it's Excel format
+                if data[:4] == b'PK\x03\x04':  # Excel file signature
+                    print("📊 Converting Excel to CSV...")
+                    import pandas as pd
+                    import io
+                    
+                    # Read Excel from bytes
+                    df = pd.read_excel(io.BytesIO(data))
+                    
+                    # Apply additional filters if API filtering didn't work
+                    if carrier and 'Carrier' in df.columns:
+                        original_len = len(df)
+                        df = df[df['Carrier'] == carrier]
+                        print(f"   Filtered by Carrier={carrier}: {original_len} → {len(df)} rows")
+                    
+                    if os_filter and 'OS' in df.columns:
+                        original_len = len(df)
+                        df = df[df['OS'] == int(os_filter)]
+                        print(f"   Filtered by OS={os_filter}: {original_len} → {len(df)} rows")
+                    
+                    if client and 'Client' in df.columns:
+                        original_len = len(df)
+                        df = df[df['Client'] == client]
+                        print(f"   Filtered by Client={client}: {original_len} → {len(df)} rows")
+                    
+                    # Save as CSV
+                    df.to_csv(output_path, index=False)
+                    print(f"💾 Data saved to: {output_file} ({len(df)} rows)")
+                else:
+                    # Already CSV
+                    output_path.write_bytes(data)
+                    print(f"💾 Data saved to: {output_file}")
+            else:
+                # Save as-is
+                output_path.write_bytes(data)
+                print(f"💾 Data saved to: {output_file}")
+            
             return str(output_path.absolute())
             
         finally:
@@ -282,6 +334,18 @@ def main():
         type=int,
         help='Fetch last N days of data (alternative to start-date/end-date)'
     )
+    parser.add_argument(
+        '--carrier',
+        help='Filter by Carrier (e.g., nash, NTG, etc.)'
+    )
+    parser.add_argument(
+        '--os',
+        help='Filter by OS value (e.g., 0, 1, etc.)'
+    )
+    parser.add_argument(
+        '--client',
+        help='Filter by Client (e.g., Walmart)'
+    )
     
     args = parser.parse_args()
     
@@ -299,7 +363,10 @@ def main():
             output_file=args.output,
             start_date=start_date,
             end_date=end_date,
-            store_id=args.store
+            store_id=args.store,
+            carrier=args.carrier,
+            os_filter=args.os,
+            client=args.client
         )
         
         print(f"\n🎉 SUCCESS! Data fetched and saved to: {output_path}")
