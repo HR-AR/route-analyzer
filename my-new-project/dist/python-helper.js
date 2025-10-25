@@ -16,7 +16,8 @@ export function getPythonPath() {
     if (existsSync(venvPython)) {
         return venvPython;
     }
-    // Use full path to ensure we get the Homebrew Python with all packages
-    return '/opt/homebrew/bin/python3';
+    // Fall back to system python3 (works on both Mac and Linux/Render)
+    // Render will have python3 in PATH with all required packages
+    return 'python3';
 }
 //# sourceMappingURL=python-helper.js.map

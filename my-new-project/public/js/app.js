@@ -581,12 +581,12 @@ function displayResults(result) {
   if (result.stats) {
     renderStatsCards(result.stats, statsCards);
   }
-  
-  // Generate charts
-  if (result.data) {
-    renderCharts(result.data, chartsSection);
+
+  // Render charts with proper ranking support
+  if (chartsSection) {
+    renderCharts(result, chartsSection);
   }
-  
+
   // Store result for downloads
   window.currentResult = result;
 }
@@ -602,46 +602,112 @@ function renderStatsCards(stats, container) {
   container.innerHTML = cards;
 }
 
-function renderCharts(data, container) {
+// ===== CHART RENDERING (FIXED) =====
+// Charts now properly respect Top/Bottom N selection
+
+function renderCharts(result, container) {
   container.innerHTML = '';
-  
-  // Example: DPH by Store chart
-  if (data.store_metrics) {
+
+  // Only render charts for store-level analyses with metrics
+  const data = result.data || {};
+
+  // DPH by Store chart (for store-metrics and driver-store analyses)
+  if (data.store_metrics && Array.isArray(data.store_metrics)) {
     const chartDiv = document.createElement('div');
     chartDiv.className = 'chart-container';
     chartDiv.innerHTML = '<canvas id="dphChart"></canvas>';
     container.appendChild(chartDiv);
-    
+
     setTimeout(() => {
-      createDPHChart(data.store_metrics);
+      createDPHChart(data.store_metrics, result.rankingValue || '10');
     }, 100);
   }
 }
 
-function createDPHChart(storeMetrics) {
+function createDPHChart(storeMetrics, rankingValue) {
   const ctx = document.getElementById('dphChart');
   if (!ctx) return;
-  
-  const sortedStores = storeMetrics.sort((a, b) => b.avg_dph - a.avg_dph).slice(0, 10);
-  
+
+  // Determine how many stores to show based on ranking selection
+  let topStores, bottomStores, chartTitle;
+
+  if (rankingValue === 'all') {
+    // Show all stores sorted by DPH
+    const sortedAll = [...storeMetrics].sort((a, b) => b.avg_dph - a.avg_dph);
+    topStores = sortedAll;
+    bottomStores = [];
+    chartTitle = `All Stores by DPH (${sortedAll.length} stores)`;
+  } else {
+    // Show Top N and Bottom N
+    const n = parseInt(rankingValue) || 10;
+    const sortedByDPH = [...storeMetrics].sort((a, b) => b.avg_dph - a.avg_dph);
+
+    topStores = sortedByDPH.slice(0, n);
+    bottomStores = sortedByDPH.slice(-n).reverse(); // Reverse to show lowest first
+    chartTitle = `Top ${n} vs Bottom ${n} Stores by DPH`;
+  }
+
+  // Combine datasets
+  const labels = [
+    ...topStores.map(s => `🔝 Store ${s.store_id}`),
+    ...(bottomStores.length > 0 ? [''] : []), // Spacer between top and bottom
+    ...bottomStores.map(s => `🔻 Store ${s.store_id}`)
+  ];
+
+  const dphValues = [
+    ...topStores.map(s => s.avg_dph),
+    ...(bottomStores.length > 0 ? [null] : []), // Gap in chart
+    ...bottomStores.map(s => s.avg_dph)
+  ];
+
+  // Color code: green for top, red for bottom
+  const backgroundColors = [
+    ...topStores.map(() => 'rgba(34, 139, 34, 0.7)'), // Forest green for top
+    ...(bottomStores.length > 0 ? ['transparent'] : []),
+    ...bottomStores.map(() => 'rgba(220, 53, 69, 0.7)') // Red for bottom
+  ];
+
+  const borderColors = [
+    ...topStores.map(() => 'rgba(34, 139, 34, 1)'),
+    ...(bottomStores.length > 0 ? ['transparent'] : []),
+    ...bottomStores.map(() => 'rgba(220, 53, 69, 1)')
+  ];
+
   new Chart(ctx, {
     type: 'bar',
     data: {
-      labels: sortedStores.map(s => `Store ${s.store_id}`),
+      labels: labels,
       datasets: [{
         label: 'DPH (Deliveries Per Hour)',
-        data: sortedStores.map(s => s.avg_dph),
-        backgroundColor: 'rgba(0, 113, 206, 0.7)',
-        borderColor: 'rgba(0, 113, 206, 1)',
+        data: dphValues,
+        backgroundColor: backgroundColors,
+        borderColor: borderColors,
         borderWidth: 2
       }]
     },
     options: {
       responsive: true,
+      maintainAspectRatio: false,
       plugins: {
         title: {
           display: true,
-          text: 'Top 10 Stores by DPH'
+          text: chartTitle,
+          font: { size: 16, weight: 'bold' }
+        },
+        legend: {
+          display: false
+        },
+        tooltip: {
+          callbacks: {
+            title: (context) => {
+              const label = context[0].label;
+              return label.replace('🔝 ', '').replace('🔻 ', '');
+            },
+            label: (context) => {
+              if (context.parsed.y === null) return null;
+              return `DPH: ${context.parsed.y.toFixed(2)}`;
+            }
+          }
         }
       },
       scales: {
@@ -650,6 +716,13 @@ function createDPHChart(storeMetrics) {
           title: {
             display: true,
             text: 'Deliveries Per Hour'
+          }
+        },
+        x: {
+          ticks: {
+            autoSkip: false,
+            maxRotation: 45,
+            minRotation: 45
           }
         }
       }

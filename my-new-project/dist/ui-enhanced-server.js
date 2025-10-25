@@ -138,10 +138,10 @@ app.get('/api/bigquery-fetch', async (req, res) => {
             const rows = content.split('\n').length - 1; // Subtract header
             res.json({
                 success: true,
-                filePath: tableauPath, // Return converted file path
-                originalPath: outputPath, // Also provide original for download
+                filePath: outputPath, // Return original file path for BigQuery KPI analysis
+                tableauPath: tableauPath, // Converted format if needed for other analyses
                 rows,
-                message: 'Data fetched successfully from BigQuery and converted to analysis format',
+                message: 'Data fetched successfully from BigQuery',
                 source: 'bigquery'
             });
         }
@@ -309,7 +309,8 @@ function runPythonAnalysis(analysisType, csvPath, storeId, additionalParams = {}
                     summary: summary,
                     detailed: report,
                     data: result,
-                    stats: extractStats(result)
+                    stats: extractStats(result),
+                    rankingValue: additionalParams.ranking || '10' // Pass ranking to frontend for chart rendering
                 });
             }
             catch (error) {

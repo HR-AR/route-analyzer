@@ -346,25 +346,71 @@ function generateMultidayAllStoresReport(data: any): { report: string; summary: 
  * BigQuery KPI Analysis Report
  */
 function generateBigQueryKPIReport(data: any): { report: string; summary: string } {
-  const { overall, store_metrics } = data;
+  const { overall, store_metrics, top_10_stores, bottom_10_stores } = data;
 
   let summary = `BIGQUERY KPI ANALYSIS\n`;
   summary += `${'-'.repeat(60)}\n`;
   if (overall) {
     summary += `Total Routes: ${overall.total_routes || 0}\n`;
     summary += `Total Orders: ${overall.total_orders || 0}\n`;
-    summary += `Avg Orders/Route: ${safeFixed(overall.avg_orders_per_route)}\n`;
+    summary += `Unique Stores: ${overall.unique_stores || 0}\n`;
+    summary += `Avg Batch Density: ${safeFixed(overall.batch_density)}\n`;
+    summary += `Avg Dwell Time: ${safeFixed(overall.avg_dwell_time)} min\n`;
+    summary += `Avg Load Time: ${safeFixed(overall.avg_load_time)} min\n`;
+    summary += `Avg Driving Time: ${safeFixed(overall.avg_driving_time)} min\n`;
   }
 
   let report = summary + '\n';
   report += '='.repeat(60) + '\n\n';
 
-  if (store_metrics && store_metrics.length > 0) {
-    report += '📊 STORE PERFORMANCE METRICS\n';
+  // Top Performing Stores
+  if (top_10_stores && top_10_stores.length > 0) {
+    report += `📊 TOP ${top_10_stores.length} STORES (by Batch Density)\n`;
     report += '='.repeat(60) + '\n\n';
-    store_metrics.forEach((store: any) => {
-      report += `Store ${store.store_id}: ${store.routes} routes | ${store.total_orders} orders\n`;
-      report += `  Batch Density: ${safeFixed(store.batch_density)} | Avg Dwell: ${safeFixed(store.avg_dwell_time)}m\n\n`;
+    top_10_stores.forEach((store: any, idx: number) => {
+      report += `${idx + 1}. Store ${store.store_id}\n`;
+      report += `   Routes: ${store.route_count || 0} | Orders: ${store.total_orders || 0} | Delivered: ${store.delivered_orders || 0}\n`;
+      report += `   Batch Density: ${safeFixed(store.batch_density)} orders/route\n`;
+      report += `   Dwell Time: ${safeFixed(store.avg_dwell_time)} min | Load Time: ${safeFixed(store.avg_load_time)} min\n`;
+      report += `   Driving Time: ${safeFixed(store.avg_driving_time)} min | Total Time: ${safeFixed(store.avg_total_time)} min\n`;
+      if (store.carriers && store.carriers.length > 0) {
+        report += `   Carriers: ${store.carriers.join(', ')}\n`;
+      }
+      report += '\n';
+    });
+  }
+
+  // Bottom Performing Stores
+  if (bottom_10_stores && bottom_10_stores.length > 0) {
+    report += `📉 BOTTOM ${bottom_10_stores.length} STORES (by Batch Density)\n`;
+    report += '='.repeat(60) + '\n\n';
+    bottom_10_stores.forEach((store: any, idx: number) => {
+      report += `${idx + 1}. Store ${store.store_id}\n`;
+      report += `   Routes: ${store.route_count || 0} | Orders: ${store.total_orders || 0} | Delivered: ${store.delivered_orders || 0}\n`;
+      report += `   Batch Density: ${safeFixed(store.batch_density)} orders/route\n`;
+      report += `   Dwell Time: ${safeFixed(store.avg_dwell_time)} min | Load Time: ${safeFixed(store.avg_load_time)} min\n`;
+      report += `   Driving Time: ${safeFixed(store.avg_driving_time)} min | Total Time: ${safeFixed(store.avg_total_time)} min\n`;
+      if (store.carriers && store.carriers.length > 0) {
+        report += `   Carriers: ${store.carriers.join(', ')}\n`;
+      }
+      report += '\n';
+    });
+  }
+
+  // All Store Metrics (if showing all)
+  if ((!top_10_stores || top_10_stores.length === 0) && store_metrics && store_metrics.length > 0) {
+    report += '📊 ALL STORE PERFORMANCE METRICS\n';
+    report += '='.repeat(60) + '\n\n';
+    store_metrics.forEach((store: any, idx: number) => {
+      report += `${idx + 1}. Store ${store.store_id}\n`;
+      report += `   Routes: ${store.route_count || 0} | Orders: ${store.total_orders || 0} | Delivered: ${store.delivered_orders || 0}\n`;
+      report += `   Batch Density: ${safeFixed(store.batch_density)} orders/route\n`;
+      report += `   Dwell Time: ${safeFixed(store.avg_dwell_time)} min | Load Time: ${safeFixed(store.avg_load_time)} min\n`;
+      report += `   Driving Time: ${safeFixed(store.avg_driving_time)} min | Total Time: ${safeFixed(store.avg_total_time)} min\n`;
+      if (store.carriers && store.carriers.length > 0) {
+        report += `   Carriers: ${store.carriers.join(', ')}\n`;
+      }
+      report += '\n';
     });
   }
 
