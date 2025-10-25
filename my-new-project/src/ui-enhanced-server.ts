@@ -4,6 +4,7 @@ import { spawn } from 'child_process';
 import { existsSync, readFileSync, unlinkSync, mkdirSync } from 'fs';
 import { join, resolve, basename } from 'path';
 import { getPythonPath } from './python-helper.js';
+import { generateReport } from './report-generator-v2.js';
 
 const app = express();
 const PORT = process.env.PORT ? parseInt(process.env.PORT) : 3003;
@@ -42,12 +43,12 @@ app.post('/api/analyze', upload.single('csv'), async (req, res) => {
       return res.status(400).json({ error: 'No file uploaded' });
     }
 
-    const { analysisType, storeId } = req.body;
+    const { analysisType, storeId, ...additionalParams } = req.body;
     const csvPath = req.file.path;
 
-    console.log(`Running ${analysisType} analysis on ${csvPath}`);
+    console.log(`Running ${analysisType} analysis on ${csvPath}`, additionalParams);
 
-    const result = await runPythonAnalysis(analysisType, csvPath, storeId);
+    const result = await runPythonAnalysis(analysisType, csvPath, storeId, additionalParams);
 
     // Clean up uploaded file
     setTimeout(() => {
@@ -336,43 +337,32 @@ function runPythonAnalysis(analysisType: string, csvPath: string, storeId?: stri
       try {
         const result = JSON.parse(stdout);
 
-        // Extract report from Python output
-        // Tableau returns: { report: "string", summary: {...}, ... }
-        // Store metrics returns: { overall: {...}, store_metrics: [...], ... }
-        let report = result.report || '';
-        let summary = '';
-
-        // Handle different Python output formats
-        if (typeof result.summary === 'string') {
-          // Already a string summary
-          summary = result.summary;
-        } else if (result.report) {
-          // Use report for summary (Tableau style)
-          summary = result.report.substring(0, 2000);
-        } else if (result.overall) {
-          // Generate summary from store metrics
-          summary = `Total Routes: ${result.overall.total_routes || 0}\n`;
-          summary += `Total Orders: ${result.overall.total_orders || 0}\n`;
-          summary += `Average DPH: ${result.overall.avg_dph?.toFixed(2) || 0}\n`;
-          summary += `Delivery Rate: ${((result.overall.total_delivered / result.overall.total_orders * 100) || 0).toFixed(1)}%\n`;
-        }
+        // Generate formatted text report from JSON using the report generator
+        // Pass ranking parameter if available
+        const ranking = additionalParams.ranking || 10;
+        const { report, summary } = generateReport(result, analysisType, ranking);
 
         resolve({
           success: true,
-          report: report || summary,
-          summary: summary || report,
-          detailed: report || summary,
+          report: report,
+          summary: summary,
+          detailed: report,
           data: result,
           stats: extractStats(result)
         });
       } catch (error) {
-        reject(new Error('Failed to parse analysis results'));
+        console.error('Parse error:', error);
+        console.error('stdout:', stdout.substring(0, 500));
+        console.error('stderr:', stderr);
+        reject(new Error(`Failed to parse analysis results: ${error instanceof Error ? error.message : String(error)}`));
       }
     });
 
-    // Send CSV path and additional params to Python script
+    // Send CSV path, store_id, and additional params to Python script
     const inputData = {
       csv_path: csvPath,
+      store_id: storeId,
+      storeId: storeId, // Include both formats for compatibility
       ...additionalParams
     };
     pythonProcess.stdin.write(JSON.stringify(inputData));

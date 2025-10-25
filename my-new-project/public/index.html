@@ -136,8 +136,30 @@
             </label>
           </div>
 
+          <div id="nashRankingSection" class="form-group" style="display: none; margin-top: 20px;">
+            <label>Store Rankings</label>
+            <div style="display: flex; gap: 15px; flex-wrap: wrap;">
+              <label class="checkbox-label">
+                <input type="radio" name="nashRanking" value="10" checked>
+                Top/Bottom 10
+              </label>
+              <label class="checkbox-label">
+                <input type="radio" name="nashRanking" value="15">
+                Top/Bottom 15
+              </label>
+              <label class="checkbox-label">
+                <input type="radio" name="nashRanking" value="20">
+                Top/Bottom 20
+              </label>
+              <label class="checkbox-label">
+                <input type="radio" name="nashRanking" value="all">
+                All Stores
+              </label>
+            </div>
+          </div>
+
           <div id="storeInput" class="store-input" style="display: none;">
-            <label for="storeId">Store ID (required for Driver/Multi-Day analysis)</label>
+            <label for="storeId">Store ID (optional for Multi-Day, required for Driver/Store analysis)</label>
             <input type="text" id="storeId" placeholder="e.g., 5930">
           </div>
 
@@ -373,7 +395,8 @@
       </div>
 
       <div class="results-actions">
-        <button id="downloadReport" class="btn btn-primary">📥 Download Report</button>
+        <button id="downloadReport" class="btn btn-primary">📥 Download Report (TXT)</button>
+        <button id="downloadCsv" class="btn btn-success">📥 Download CSV</button>
         <button id="downloadJson" class="btn btn-secondary">📥 Download JSON</button>
       </div>
     </section>

@@ -108,16 +108,29 @@ function initializeUpload() {
 function initializeAnalysis() {
   const analysisRadios = document.querySelectorAll('input[name="analysis"]');
   const storeInput = document.getElementById('storeInput');
+  const nashRankingSection = document.getElementById('nashRankingSection');
   const runButton = document.getElementById('runAnalysis');
-  
-  // Show/hide store input based on analysis type
+
+  // Show/hide store input and ranking controls based on analysis type
   analysisRadios.forEach(radio => {
     radio.addEventListener('change', (e) => {
       state.analysisType = e.target.value;
       const requiresStore = ['driver-store', 'multiday', 'store-analysis'].includes(e.target.value);
+      const showRanking = ['store-metrics', 'driver-store'].includes(e.target.value);
+
       storeInput.style.display = requiresStore ? 'block' : 'none';
+      if (nashRankingSection) {
+        nashRankingSection.style.display = showRanking ? 'block' : 'none';
+      }
     });
   });
+
+  // Initialize visibility on page load
+  const initialAnalysisType = document.querySelector('input[name="analysis"]:checked')?.value || 'store-metrics';
+  const initialShowRanking = ['store-metrics', 'driver-store'].includes(initialAnalysisType);
+  if (nashRankingSection) {
+    nashRankingSection.style.display = initialShowRanking ? 'block' : 'none';
+  }
   
   // Run analysis
   runButton.addEventListener('click', async () => {
@@ -127,14 +140,26 @@ function initializeAnalysis() {
     }
     
     const storeId = document.getElementById('storeId').value;
-    const requiresStore = ['driver-store', 'multiday'].includes(state.analysisType);
-    
+    const requiresStore = ['driver-store', 'store-analysis'].includes(state.analysisType);
+
     if (requiresStore && !storeId) {
       showNotification('Please enter a Store ID', 'error');
       return;
     }
-    
-    await runAnalysis(state.uploadedFile, state.analysisType, storeId);
+
+    // Multi-day analysis: if no store ID, analyze all stores
+    const additionalParams = {};
+    if (state.analysisType === 'multiday' && !storeId) {
+      additionalParams.analyze_all = true;
+    }
+
+    // Add ranking parameter for store-metrics and driver-store analyses
+    if (['store-metrics', 'driver-store'].includes(state.analysisType)) {
+      const rankingValue = document.querySelector('input[name="nashRanking"]:checked')?.value || '10';
+      additionalParams.ranking = rankingValue;
+    }
+
+    await runAnalysis(state.uploadedFile, state.analysisType, storeId, additionalParams);
   });
 }
 
@@ -349,27 +374,33 @@ function initializeResults() {
   });
   
   document.getElementById('downloadReport').addEventListener('click', downloadReport);
+  document.getElementById('downloadCsv').addEventListener('click', downloadCSV);
   document.getElementById('downloadJson').addEventListener('click', downloadJSON);
 }
 
 // ===== API CALLS =====
 
-async function runAnalysis(file, analysisType, storeId = null) {
+async function runAnalysis(file, analysisType, storeId = null, additionalParams = {}) {
   const formData = new FormData();
   formData.append('csv', file);
   formData.append('analysisType', analysisType);
   if (storeId) formData.append('storeId', storeId);
-  
+
+  // Append additional parameters (like analyze_all for multiday)
+  Object.keys(additionalParams).forEach(key => {
+    formData.append(key, additionalParams[key]);
+  });
+
   showLoading('Running analysis...');
-  
+
   try {
     const response = await fetch('/api/analyze', {
       method: 'POST',
       body: formData
     });
-    
+
     if (!response.ok) throw new Error('Analysis failed');
-    
+
     const result = await response.json();
     displayResults(result);
     hideLoading();
@@ -672,7 +703,7 @@ function downloadReport() {
 
 function downloadJSON() {
   if (!window.currentResult) return;
-  
+
   const json = JSON.stringify(window.currentResult, null, 2);
   const blob = new Blob([json], { type: 'application/json' });
   const url = URL.createObjectURL(blob);
@@ -681,4 +712,75 @@ function downloadJSON() {
   a.download = `analysis-data-${Date.now()}.json`;
   a.click();
   URL.revokeObjectURL(url);
+}
+
+function downloadCSV() {
+  if (!window.currentResult || !window.currentResult.data) return;
+
+  const data = window.currentResult.data;
+  let csv = '';
+
+  // Convert different data structures to CSV
+  if (data.store_metrics && Array.isArray(data.store_metrics)) {
+    // Store Metrics
+    csv = convertArrayToCSV(data.store_metrics);
+  } else if (data.driver_metrics && Array.isArray(data.driver_metrics)) {
+    // Driver Analysis
+    csv = convertArrayToCSV(data.driver_metrics);
+  } else if (data.top_pending_routes && Array.isArray(data.top_pending_routes)) {
+    // Pending Orders
+    csv = convertArrayToCSV(data.top_pending_routes);
+  } else if (data.top_return_routes && Array.isArray(data.top_return_routes)) {
+    // Returns
+    csv = convertArrayToCSV(data.top_return_routes);
+  } else if (data.routes && Array.isArray(data.routes)) {
+    // Multi-day routes
+    csv = convertArrayToCSV(data.routes);
+  } else if (data.stores && Array.isArray(data.stores)) {
+    // Multi-day all stores
+    csv = convertArrayToCSV(data.stores);
+  } else if (data.daily_routes && Array.isArray(data.daily_routes)) {
+    // Store Analysis
+    csv = convertArrayToCSV(data.daily_routes);
+  } else {
+    alert('No tabular data available for CSV export');
+    return;
+  }
+
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `analysis-export-${Date.now()}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function convertArrayToCSV(array) {
+  if (!array || array.length === 0) return '';
+
+  // Get headers from first object
+  const headers = Object.keys(array[0]);
+
+  // Create CSV header row
+  let csv = headers.join(',') + '\n';
+
+  // Add data rows
+  array.forEach(row => {
+    const values = headers.map(header => {
+      const value = row[header];
+      // Handle nested objects/arrays
+      if (typeof value === 'object' && value !== null) {
+        return JSON.stringify(value).replace(/,/g, ';');
+      }
+      // Handle strings with commas
+      if (typeof value === 'string' && value.includes(',')) {
+        return `"${value}"`;
+      }
+      return value !== undefined && value !== null ? value : '';
+    });
+    csv += values.join(',') + '\n';
+  });
+
+  return csv;
 }

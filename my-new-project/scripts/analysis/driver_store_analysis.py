@@ -15,8 +15,9 @@ def analyze_driver_store_performance(csv_path: str, store_id: int) -> Dict[str, 
 
     df = pd.read_csv(csv_path)
 
-    # Filter for the specific store
-    store_df = df[df['Store Id'] == store_id].copy()
+    # Filter for the specific store (convert store_id to int for comparison)
+    store_id_int = int(store_id)
+    store_df = df[df['Store Id'] == store_id_int].copy()
 
     if len(store_df) == 0:
         return {'error': f'No data found for Store #{store_id}'}

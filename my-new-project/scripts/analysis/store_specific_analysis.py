@@ -36,8 +36,9 @@ def analyze_store(csv_path: str, store_id: str) -> dict:
     """Analyze all routes for a specific store"""
     df = pd.read_csv(csv_path)
 
-    # Filter to specific store
-    store_df = df[df['Store Id'].astype(str) == str(store_id)].copy()
+    # Filter to specific store (convert to int for proper comparison)
+    store_id_int = int(store_id)
+    store_df = df[df['Store Id'] == store_id_int].copy()
 
     if len(store_df) == 0:
         return {
@@ -212,7 +213,7 @@ def main():
     try:
         input_data = json.loads(sys.stdin.read())
         csv_path = input_data.get('csv_path')
-        store_id = input_data.get('store_id')
+        store_id = input_data.get('store_id') or input_data.get('storeId')
 
         if not csv_path or not store_id:
             raise ValueError("csv_path and store_id are required")
