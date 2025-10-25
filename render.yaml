@@ -9,15 +9,18 @@ services:
 
     # Build configuration
     buildCommand: |
+      # Navigate to my-new-project directory
+      cd my-new-project
       # Install Node.js dependencies
       npm install
       # Build TypeScript
       npm run build
-      # Install Python dependencies
+      # Install Python dependencies (parent directory)
+      cd ..
       pip install -r requirements.txt
 
-    # Start command
-    startCommand: node dist/ui-server.js
+    # Start command (use enhanced server from my-new-project)
+    startCommand: node my-new-project/dist/ui-enhanced-server.js
 
     # Environment setup
     envVars:

@@ -430,6 +430,20 @@ function generateStoreMetricsReport(data: any, rankCount: number = 10): { report
     summary += `Total Orders: ${overall.total_orders || 0}\n`;
     summary += `Avg DPH: ${safeFixed(overall.avg_dph)}\n`;
     summary += `Overall Delivery Rate: ${safeFixed(overall.total_delivered / overall.total_orders * 100, 1)}%\n`;
+
+    // Drive Time Summary
+    if (overall.avg_planned_hours !== undefined || overall.avg_actual_hours !== undefined) {
+      const planned = safeNumber(overall.avg_planned_hours);
+      const actual = safeNumber(overall.avg_actual_hours);
+      const variance = safeNumber(overall.avg_variance_hours);
+      const variancePct = planned > 0 ? ((actual - planned) / planned * 100) : 0;
+
+      summary += `Avg Planned Drive Time: ${safeFixed(planned, 2)} hrs\n`;
+      if (overall.avg_actual_hours !== undefined) {
+        summary += `Avg Actual Drive Time: ${safeFixed(actual, 2)} hrs\n`;
+        summary += `Avg Variance: ${variance >= 0 ? '+' : ''}${safeFixed(variance, 2)} hrs (${variancePct >= 0 ? '+' : ''}${safeFixed(variancePct, 1)}%)\n`;
+      }
+    }
   }
 
   let report = summary + '\n';
@@ -446,6 +460,21 @@ function generateStoreMetricsReport(data: any, rankCount: number = 10): { report
       report += `   Routes: ${store.routes || 0} | Orders: ${store.total_orders || 0}\n`;
       report += `   DPH: ${safeFixed(store.avg_dph)} | Delivery Rate: ${safeFixed(store.delivery_rate)}%\n`;
       report += `   Returns: ${store.returned_orders || 0} | Pending: ${store.pending_orders || 0}\n`;
+
+      // Drive Time Metrics
+      if (store.avg_planned_hours !== undefined || store.avg_actual_hours !== undefined) {
+        const planned = safeNumber(store.avg_planned_hours);
+        const actual = safeNumber(store.avg_actual_hours);
+        const variance = safeNumber(store.avg_variance_hours);
+        const variancePct = planned > 0 ? ((actual - planned) / planned * 100) : 0;
+
+        report += `   Planned Drive Time: ${safeFixed(planned, 2)} hrs`;
+        if (store.avg_actual_hours !== undefined) {
+          report += ` | Actual: ${safeFixed(actual, 2)} hrs`;
+          report += ` | Variance: ${variance >= 0 ? '+' : ''}${safeFixed(variance, 2)} hrs (${variancePct >= 0 ? '+' : ''}${safeFixed(variancePct, 1)}%)`;
+        }
+        report += `\n`;
+      }
     });
 
     if (rankCount !== -1) {
@@ -457,6 +486,21 @@ function generateStoreMetricsReport(data: any, rankCount: number = 10): { report
         report += `   Routes: ${store.routes || 0} | Orders: ${store.total_orders || 0}\n`;
         report += `   DPH: ${safeFixed(store.avg_dph)} | Delivery Rate: ${safeFixed(store.delivery_rate)}%\n`;
         report += `   Returns: ${store.returned_orders || 0} | Pending: ${store.pending_orders || 0}\n`;
+
+        // Drive Time Metrics
+        if (store.avg_planned_hours !== undefined || store.avg_actual_hours !== undefined) {
+          const planned = safeNumber(store.avg_planned_hours);
+          const actual = safeNumber(store.avg_actual_hours);
+          const variance = safeNumber(store.avg_variance_hours);
+          const variancePct = planned > 0 ? ((actual - planned) / planned * 100) : 0;
+
+          report += `   Planned Drive Time: ${safeFixed(planned, 2)} hrs`;
+          if (store.avg_actual_hours !== undefined) {
+            report += ` | Actual: ${safeFixed(actual, 2)} hrs`;
+            report += ` | Variance: ${variance >= 0 ? '+' : ''}${safeFixed(variance, 2)} hrs (${variancePct >= 0 ? '+' : ''}${safeFixed(variancePct, 1)}%)`;
+          }
+          report += `\n`;
+        }
       });
     }
   }
