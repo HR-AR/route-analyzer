@@ -289,16 +289,18 @@ async function fetchTableauData(days, startDate, endDate, storeId) {
     if (!response.ok) throw new Error('Tableau fetch failed');
     
     const result = await response.json();
+    console.log('📊 Tableau fetch result:', result);
     hideLoading();
 
-    let message = `Successfully fetched ${result.rows} rows from Tableau!`;
-    if (result.note) {
-      message += `\n\n${result.note}`;
-    }
-    showNotification(message, 'success');
+    showNotification(`Successfully fetched ${result.rows} rows from Tableau!`, 'success');
 
-    // Don't auto-run analysis - Tableau data has different format
-    // User can download the CSV file from data/ folder
+    // Auto-run Tableau metrics analysis
+    if (result.filePath) {
+      console.log('🔍 Running analysis on:', result.filePath);
+      await runAnalysisOnPath(result.filePath, 'tableau-metrics');
+    } else {
+      console.error('❌ No filePath in result:', result);
+    }
   } catch (error) {
     hideLoading();
     showNotification(`Error: ${error.message}`, 'error');
@@ -337,22 +339,37 @@ async function mergeCSVFiles(files, removeDuplicates) {
   }
 }
 
-async function runAnalysisOnPath(filePath) {
+async function runAnalysisOnPath(filePath, analysisType = 'store-metrics') {
+  console.log('🚀 runAnalysisOnPath called:', { filePath, analysisType });
   showLoading('Running analysis...');
-  
+
+  // Auto-detect Tableau data
+  if (filePath.includes('tableau-')) {
+    analysisType = 'tableau-metrics';
+    console.log('🎯 Detected Tableau data, using tableau-metrics analysis');
+  }
+
   try {
+    console.log('📤 Sending analysis request...');
     const response = await fetch('/api/analyze-path', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ filePath, analysisType: 'store-metrics' })
+      body: JSON.stringify({ filePath, analysisType })
     });
-    
-    if (!response.ok) throw new Error('Analysis failed');
-    
+
+    console.log('📥 Response status:', response.status);
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('❌ Analysis failed:', errorText);
+      throw new Error('Analysis failed');
+    }
+
     const result = await response.json();
+    console.log('✅ Analysis result:', result);
     displayResults(result);
     hideLoading();
   } catch (error) {
+    console.error('💥 Error in runAnalysisOnPath:', error);
     hideLoading();
     showNotification(`Error: ${error.message}`, 'error');
   }
@@ -361,20 +378,28 @@ async function runAnalysisOnPath(filePath) {
 // ===== RESULTS DISPLAY =====
 
 function displayResults(result) {
+  console.log('🎨 displayResults called with:', result);
+
   const resultsSection = document.getElementById('resultsSection');
   const summaryText = document.getElementById('summaryText');
   const detailedText = document.getElementById('detailedText');
   const rawJson = document.getElementById('rawJson');
   const statsCards = document.getElementById('statsCards');
   const chartsSection = document.getElementById('chartsSection');
-  
+
   // Show results section
   resultsSection.style.display = 'block';
   resultsSection.scrollIntoView({ behavior: 'smooth' });
-  
-  // Display text reports
-  summaryText.textContent = result.summary || result.report || 'No summary available';
-  detailedText.textContent = result.detailed || result.report || 'No detailed report available';
+
+  // Display text reports - FIXED to handle Tableau format
+  const summaryContent = result.summary || result.report || 'No summary available';
+  const detailedContent = result.detailed || result.report || 'No detailed report available';
+
+  console.log('📝 Summary content length:', summaryContent.length);
+  console.log('📝 Detailed content length:', detailedContent.length);
+
+  summaryText.textContent = summaryContent;
+  detailedText.textContent = detailedContent;
   rawJson.textContent = JSON.stringify(result.data || result, null, 2);
   
   // Generate stats cards

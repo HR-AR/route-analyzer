@@ -4,20 +4,28 @@ Automated analysis tool for Dedicated Van Delivery route performance. Identifies
 
 ## 🆕 NEW: Tableau Integration!
 
-**No more manual CSV downloads!** Automatically fetch data from Tableau Server:
+**Get the Full Data from Tableau!** Two workflows available:
 
+### Option A: Full Data (Recommended - All 500 Columns!)
 ```bash
-# Quick fetch: Nash + Walmart + OS=0 data
-npm run fetch-nash
+# Step 1: Download from Tableau (manual - takes < 1 min)
+# - Open dashboard → "View Data" → "Full Data" tab → Download
 
-# Custom filters
-python3 scripts/tableau_fetcher.py --carrier nash --os 0 --client Walmart --days 7
+# Step 2: Process the downloaded file
+python3 scripts/process_tableau_manual_download.py \n  ~/Downloads/"Daily Summary-Agg_Full Data_data.csv" \n  --output data/nash_walmart_full.csv \n  --carrier Nash --os 0 --client Walmart
 
-# Fetch and analyze
-npm run fetch-and-analyze -- --days 7
+# Step 3: Analyze!
+npm run store-metrics -- data/nash_walmart_full.csv
 ```
 
-👉 **See [TABLEAU-DATA-FETCHING.md](TABLEAU-DATA-FETCHING.md) for complete data fetching guide**  
+### Option B: API Fetch (Automated - Summary View Only)
+```bash
+# Fetch aggregated summary metrics (52 measures)
+npm run fetch-nash
+```
+
+👉 **See [TABLEAU-FULL-DATA-GUIDE.md](TABLEAU-FULL-DATA-GUIDE.md) for Full Data workflow (500 columns!)**  
+👉 **See [TABLEAU-DATA-FETCHING.md](TABLEAU-DATA-FETCHING.md) for API fetching (summary view)**  
 👉 **See [WALMART-HOSTING-GUIDE.md](WALMART-HOSTING-GUIDE.md) to host this tool and share with your team**
 
 ---

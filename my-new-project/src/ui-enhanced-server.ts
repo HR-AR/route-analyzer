@@ -181,6 +181,10 @@ function runPythonAnalysis(analysisType: string, csvPath: string, storeId?: stri
     let args: string[];
 
     switch (analysisType) {
+      case 'tableau-metrics':
+        scriptPath = './scripts/analysis/tableau_metrics_analysis.py';
+        args = [];
+        break;
       case 'store-metrics':
         scriptPath = './scripts/analysis/store_metrics_breakdown.py';
         args = [];

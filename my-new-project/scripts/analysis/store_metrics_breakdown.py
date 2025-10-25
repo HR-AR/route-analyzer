@@ -27,8 +27,14 @@ def analyze_store_metrics(csv_path: str) -> Dict[str, Any]:
 
     df = pd.read_csv(csv_path)
 
-    # Convert Date column to datetime and filter for Oct 4th onwards
-    df['Date'] = pd.to_datetime(df['Date'], errors='coerce')
+    # Handle different date column names (Tableau uses "Report Date")
+    if 'Report Date' in df.columns and 'Date' not in df.columns:
+        df['Date'] = pd.to_datetime(df['Report Date'], errors='coerce')
+    elif 'Date' in df.columns:
+        df['Date'] = pd.to_datetime(df['Date'], errors='coerce')
+    else:
+        raise ValueError("CSV must have either 'Date' or 'Report Date' column")
+
     df = df[df['Date'] >= '2025-10-04']
 
     # Convert time columns to numeric (minutes)
