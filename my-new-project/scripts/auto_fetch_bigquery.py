@@ -17,17 +17,18 @@ DATASET = "LMD_DA"
 TABLE = "PROJECT_CENTRAL_SUMMARY_TABLE_DATE_LEVEL_AGGREGATABLE_KPI"
 
 
-def fetch_data(output_file, days=30, carrier='Nash', client='Walmart', 
-               grouped_by='Unscheduled Delivery'):
+def fetch_data(output_file, days=30, carrier='Nash', client='Walmart',
+               grouped_by='Unscheduled Delivery', oversized='0'):
     """
     Fetch data from BigQuery and save to CSV.
-    
+
     Args:
         output_file: Path to save CSV
         days: Number of days to fetch (default: 30)
         carrier: Carrier filter (default: Nash)
         client: Client filter (default: Walmart)
-        grouped_by: Grouped by filter (default: Unscheduled Delivery for OS=0)
+        grouped_by: Grouped by filter (default: Unscheduled Delivery)
+        oversized: Oversized item indicator - '0' for non-oversized, '1' for oversized, 'all' for both (default: '0')
     """
     
     print("\n" + "="*80)
@@ -41,6 +42,7 @@ def fetch_data(output_file, days=30, carrier='Nash', client='Walmart',
     print(f"  ✓ Carrier: {carrier}")
     print(f"  ✓ Client: {client}")
     print(f"  ✓ Type: {grouped_by}")
+    print(f"  ✓ Oversized (OS): {oversized}")
     print(f"  ✓ Date Range: Last {days} days")
     print()
     print("="*80)
@@ -58,26 +60,35 @@ def fetch_data(output_file, days=30, carrier='Nash', client='Walmart',
         print("   gcloud auth application-default login")
         return None
     
-    # Build the query
+    # Build the query with optional oversized filter
+    oversized_filter = ""
+    query_params = [
+        bigquery.ScalarQueryParameter("carrier", "STRING", carrier),
+        bigquery.ScalarQueryParameter("client", "STRING", client),
+        bigquery.ScalarQueryParameter("grouped_by", "STRING", grouped_by),
+        bigquery.ScalarQueryParameter("days", "INT64", days),
+    ]
+
+    # Add oversized filter if not "all"
+    if oversized.lower() != 'all':
+        oversized_filter = "AND OVERSIZED_ITEM_IND = @oversized"
+        # Convert to INT64 for BigQuery type matching
+        oversized_int = int(oversized)
+        query_params.append(bigquery.ScalarQueryParameter("oversized", "INT64", oversized_int))
+
     query = f"""
     SELECT *
     FROM `{PROJECT}.{DATASET}.{TABLE}`
     WHERE carrier_org_nm = @carrier
       AND client = @client
       AND grouped_by = @grouped_by
+      {oversized_filter}
       AND slot_dt >= DATE_SUB(CURRENT_DATE(), INTERVAL @days DAY)
     ORDER BY slot_dt DESC, store_id
     """
-    
+
     # Configure query parameters (prevents SQL injection)
-    job_config = bigquery.QueryJobConfig(
-        query_parameters=[
-            bigquery.ScalarQueryParameter("carrier", "STRING", carrier),
-            bigquery.ScalarQueryParameter("client", "STRING", client),
-            bigquery.ScalarQueryParameter("grouped_by", "STRING", grouped_by),
-            bigquery.ScalarQueryParameter("days", "INT64", days),
-        ]
-    )
+    job_config = bigquery.QueryJobConfig(query_parameters=query_params)
     
     print("📥 Running BigQuery query...")
     print(f"   This may take 10-30 seconds...")
@@ -171,18 +182,24 @@ Examples:
         '--type',
         default='Unscheduled Delivery',
         dest='grouped_by',
-        help='Delivery type filter (default: Unscheduled Delivery for OS=0)'
+        help='Delivery type filter (default: Unscheduled Delivery)'
     )
-    
+    parser.add_argument(
+        '--oversized',
+        default='0',
+        help='Oversized item indicator: 0=non-oversized, 1=oversized, all=both (default: 0)'
+    )
+
     args = parser.parse_args()
-    
+
     # Fetch the data
     output_path = fetch_data(
         output_file=args.output,
         days=args.days,
         carrier=args.carrier,
         client=args.client,
-        grouped_by=args.grouped_by
+        grouped_by=args.grouped_by,
+        oversized=args.oversized
     )
     
     if output_path:

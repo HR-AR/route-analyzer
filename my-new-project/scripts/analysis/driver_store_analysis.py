@@ -199,7 +199,11 @@ def analyze_driver_store_performance(csv_path: str, store_id: int) -> Dict[str, 
 def main():
     input_data = json.load(sys.stdin)
     csv_path = input_data['csv_path']
-    store_id = input_data['store_id']
+    store_id = input_data.get('store_id') or input_data.get('storeId')
+
+    if not store_id:
+        print(json.dumps({'error': 'Store ID is required for driver analysis'}), file=sys.stderr)
+        sys.exit(1)
 
     results = analyze_driver_store_performance(csv_path, store_id)
 

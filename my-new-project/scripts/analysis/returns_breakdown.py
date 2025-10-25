@@ -140,7 +140,7 @@ def analyze_returns_breakdown(csv_path, top_n=10):
 def main():
     # Read request from stdin
     request = json.loads(sys.stdin.read())
-    csv_path = request['csvPath']
+    csv_path = request.get('csv_path') or request.get('csvPath')
     top_n = request.get('topN', 10)  # Default to 10 if not provided
 
     # Analyze

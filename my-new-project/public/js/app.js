@@ -15,7 +15,7 @@ document.addEventListener('DOMContentLoaded', () => {
   initializeTabs();
   initializeUpload();
   initializeAnalysis();
-  initializeTableau();
+  initializeBigQuery();
   initializeMerge();
   initializeResults();
 });
@@ -138,60 +138,164 @@ function initializeAnalysis() {
   });
 }
 
-// ===== TABLEAU INTEGRATION =====
-function initializeTableau() {
-  const timeRangeRadios = document.querySelectorAll('input[name="timeRange"]');
-  const customDateRange = document.getElementById('customDateRange');
-  const fetchButton = document.getElementById('fetchTableau');
-  
-  // Show/hide custom date range
-  timeRangeRadios.forEach(radio => {
-    radio.addEventListener('change', (e) => {
-      customDateRange.style.display = e.target.value === 'custom' ? 'block' : 'none';
-    });
-  });
-  
-  // Fetch from Tableau
+// ===== BIGQUERY INTEGRATION =====
+let currentBigQueryFile = null; // Store current file path
+
+function initializeBigQuery() {
+  const fetchButton = document.getElementById('fetchBigQuery');
+  const downloadButton = document.getElementById('downloadBigQueryCSV');
+  const runAnalysisButton = document.getElementById('runBigQueryAnalysis');
+
+  if (!fetchButton) return; // Element might not exist yet
+
   fetchButton.addEventListener('click', async () => {
-    const timeRange = document.querySelector('input[name="timeRange"]:checked').value;
-    let days = null;
-    let startDate = null;
-    let endDate = null;
-    
-    if (timeRange === 'custom') {
-      startDate = document.getElementById('startDate').value;
-      endDate = document.getElementById('endDate').value;
-      
-      if (!startDate || !endDate) {
-        showNotification('Please select both start and end dates', 'error');
+    const days = document.querySelector('input[name="bqTimeRange"]:checked').value;
+    const carrier = document.getElementById('bqCarrier').value;
+    const client = document.getElementById('bqClient').value;
+    const type = document.getElementById('bqType').value;
+    const oversized = document.getElementById('bqOversized').value;
+
+    await fetchBigQueryData(parseInt(days), carrier, client, type, oversized);
+  });
+
+  // Download CSV button
+  if (downloadButton) {
+    downloadButton.addEventListener('click', () => {
+      if (currentBigQueryFile) {
+        window.location.href = `/api/download?path=${encodeURIComponent(currentBigQueryFile)}`;
+      }
+    });
+  }
+
+  // Run analysis button with ranking options
+  if (runAnalysisButton) {
+    runAnalysisButton.addEventListener('click', async () => {
+      if (!currentBigQueryFile) {
+        showNotification('Please fetch data first', 'error');
         return;
       }
-    } else {
-      days = parseInt(timeRange);
+
+      // Get selected ranking option
+      const rankingValue = document.querySelector('input[name="bqRanking"]:checked').value;
+      const topN = rankingValue === 'all' ? 'all' : parseInt(rankingValue);
+
+      await runAnalysisOnPath(currentBigQueryFile, 'bigquery-kpi', null, { top_n: topN, bottom_n: topN });
+    });
+  }
+}
+
+async function fetchBigQueryData(days, carrier, client, type, oversized) {
+  showLoading('Fetching data from BigQuery...');
+
+  const params = new URLSearchParams();
+  params.append('days', days);
+  params.append('carrier', carrier);
+  params.append('client', client);
+  params.append('type', type);
+  params.append('oversized', oversized);
+
+  try {
+    const response = await fetch(`/api/bigquery-fetch?${params}`);
+    if (!response.ok) throw new Error('BigQuery fetch failed');
+
+    const result = await response.json();
+    console.log('🔵 BigQuery fetch result:', result);
+    hideLoading();
+
+    showNotification(`Successfully fetched ${result.rows.toLocaleString()} rows from BigQuery!`, 'success');
+
+    // Store file path for download and analysis
+    if (result.filePath) {
+      currentBigQueryFile = result.filePath;
+      currentFile = result.filePath; // Also set for analysis buttons
+
+      // Show download button and analysis section
+      const downloadBtn = document.getElementById('downloadBigQueryCSV');
+      const analysisSection = document.getElementById('bigqueryAnalysisSection');
+
+      if (downloadBtn) {
+        downloadBtn.style.display = 'inline-block';
+      }
+
+      if (analysisSection) {
+        analysisSection.style.display = 'block';
+      }
     }
-    
-    const storeId = document.getElementById('tableauStore').value || null;
-    
-    await fetchTableauData(days, startDate, endDate, storeId);
-  });
+  } catch (error) {
+    hideLoading();
+    showNotification(`Error: ${error.message}`, 'error');
+  }
 }
 
 // ===== CSV MERGE =====
+let currentMergedFile = null; // Store merged file path
+
 function initializeMerge() {
   const mergeFilesInput = document.getElementById('mergeFiles');
   const filesList = document.getElementById('filesList');
   const mergeButton = document.getElementById('mergeFilesBtn');
-  
+  const downloadButton = document.getElementById('downloadMergedCSV');
+  const runAnalysisButton = document.getElementById('runMergeAnalysis');
+  const analysisRadios = document.querySelectorAll('input[name="mergeAnalysis"]');
+  const storeInput = document.getElementById('mergeStoreInput');
+
+  // Add null checks to prevent errors if elements don't exist
+  if (!mergeFilesInput || !filesList || !mergeButton) {
+    console.warn('Merge elements not found in DOM');
+    return;
+  }
+
   mergeFilesInput.addEventListener('change', (e) => {
     state.mergeFiles = Array.from(e.target.files);
     renderFilesList();
     mergeButton.disabled = state.mergeFiles.length < 2;
   });
-  
+
   mergeButton.addEventListener('click', async () => {
     const removeDuplicates = document.getElementById('removeDuplicates').checked;
     await mergeCSVFiles(state.mergeFiles, removeDuplicates);
   });
+
+  // Download merged CSV button
+  if (downloadButton) {
+    downloadButton.addEventListener('click', () => {
+      if (currentMergedFile) {
+        window.location.href = `/api/download?path=${encodeURIComponent(currentMergedFile)}`;
+      }
+    });
+  }
+
+  // Show/hide store input based on analysis type
+  if (analysisRadios) {
+    analysisRadios.forEach(radio => {
+      radio.addEventListener('change', (e) => {
+        if (storeInput) {
+          const needsStore = ['store-analysis', 'multiday'].includes(e.target.value);
+          storeInput.style.display = needsStore ? 'block' : 'none';
+        }
+      });
+    });
+  }
+
+  // Run analysis button
+  if (runAnalysisButton) {
+    runAnalysisButton.addEventListener('click', async () => {
+      const analysisType = document.querySelector('input[name="mergeAnalysis"]:checked').value;
+      const needsStore = ['store-analysis', 'multiday'].includes(analysisType);
+      const storeId = needsStore ? document.getElementById('mergeStoreId').value : null;
+
+      if (needsStore && !storeId) {
+        showNotification('Please enter a Store ID', 'error');
+        return;
+      }
+
+      if (currentMergedFile) {
+        await runAnalysisOnPath(currentMergedFile, analysisType, storeId);
+      } else {
+        showNotification('Please merge files first', 'error');
+      }
+    });
+  }
   
   function renderFilesList() {
     if (state.mergeFiles.length === 0) {
@@ -325,12 +429,22 @@ async function mergeCSVFiles(files, removeDuplicates) {
     const result = await response.json();
     hideLoading();
     showNotification(`Successfully merged ${files.length} files into ${result.rows} rows!`, 'success');
-    
-    // Optionally run analysis on merged data
+
+    // Store merged file path and show analysis section
     if (result.filePath) {
-      const shouldAnalyze = confirm('Run analysis on merged data?');
-      if (shouldAnalyze) {
-        await runAnalysisOnPath(result.filePath);
+      currentMergedFile = result.filePath;
+      currentFile = result.filePath;
+
+      // Show download button and analysis section
+      const downloadBtn = document.getElementById('downloadMergedCSV');
+      const analysisSection = document.getElementById('mergeAnalysisSection');
+
+      if (downloadBtn) {
+        downloadBtn.style.display = 'inline-block';
+      }
+
+      if (analysisSection) {
+        analysisSection.style.display = 'block';
       }
     }
   } catch (error) {
@@ -339,8 +453,8 @@ async function mergeCSVFiles(files, removeDuplicates) {
   }
 }
 
-async function runAnalysisOnPath(filePath, analysisType = 'store-metrics') {
-  console.log('🚀 runAnalysisOnPath called:', { filePath, analysisType });
+async function runAnalysisOnPath(filePath, analysisType = 'store-metrics', storeId = null, additionalParams = {}) {
+  console.log('🚀 runAnalysisOnPath called:', { filePath, analysisType, storeId, additionalParams });
   showLoading('Running analysis...');
 
   // Auto-detect Tableau data
@@ -351,10 +465,20 @@ async function runAnalysisOnPath(filePath, analysisType = 'store-metrics') {
 
   try {
     console.log('📤 Sending analysis request...');
+    const body = {
+      filePath,
+      analysisType,
+      ...additionalParams
+    };
+
+    if (storeId) {
+      body.storeId = storeId;
+    }
+
     const response = await fetch('/api/analyze-path', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ filePath, analysisType })
+      body: JSON.stringify(body)
     });
 
     console.log('📥 Response status:', response.status);
@@ -391,11 +515,29 @@ function displayResults(result) {
   resultsSection.style.display = 'block';
   resultsSection.scrollIntoView({ behavior: 'smooth' });
 
-  // Display text reports - FIXED to handle both Tableau and CSV formats
+  // Display text reports - Handle both Tableau and CSV formats
   // Tableau: { summary: {object}, report: "string", ... }
   // CSV: { summary: "string", detailed: "string", data: {object} }
-  const summaryContent = (typeof result.summary === 'string' ? result.summary : result.report) || 'No summary available';
-  const detailedContent = result.detailed || result.report || 'No detailed report available';
+  let summaryContent = '';
+  let detailedContent = '';
+
+  // Extract summary
+  if (result.summary && result.summary.trim()) {
+    summaryContent = typeof result.summary === 'string' ? result.summary : JSON.stringify(result.summary, null, 2);
+  } else if (result.report && result.report.trim()) {
+    summaryContent = result.report;
+  } else {
+    summaryContent = 'No summary available';
+  }
+
+  // Extract detailed
+  if (result.detailed && result.detailed.trim()) {
+    detailedContent = result.detailed;
+  } else if (result.report && result.report.trim()) {
+    detailedContent = result.report;
+  } else {
+    detailedContent = 'No detailed report available';
+  }
 
   console.log('📝 Summary:', typeof summaryContent, summaryContent?.substring(0, 100));
   console.log('📝 Detailed:', typeof detailedContent, detailedContent?.substring(0, 100));

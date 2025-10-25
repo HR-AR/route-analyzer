@@ -1,0 +1,355 @@
+#!/usr/bin/env python3
+"""
+BigQuery KPI Analysis - Walmart Data
+Matches Nash CSV format structure with:
+- Overall metrics
+- Store-by-store detailed metrics
+- Flexible ranking options (Top/Bottom 10/15/20/All)
+- Leadership KPIs (OTD %, Batch Rate %, Volume)
+"""
+
+import sys
+import json
+import pandas as pd
+import numpy as np
+from typing import Dict, Any, List
+
+
+def calculate_bigquery_kpis(csv_path: str, top_n: int = 10, bottom_n: int = 10) -> Dict[str, Any]:
+    """Calculate leadership KPIs from BigQuery data with flexible ranking"""
+
+    df = pd.read_csv(csv_path)
+
+    # Get date range
+    if 'slot_dt' in df.columns:
+        df['Date'] = pd.to_datetime(df['slot_dt'], errors='coerce')
+        date_range = {
+            'start': df['Date'].min().strftime('%Y-%m-%d') if pd.notna(df['Date'].min()) else 'Unknown',
+            'end': df['Date'].max().strftime('%Y-%m-%d') if pd.notna(df['Date'].max()) else 'Unknown',
+            'days': int((df['Date'].max() - df['Date'].min()).days + 1) if pd.notna(df['Date'].min()) else 0
+        }
+    else:
+        date_range = {'start': 'Unknown', 'end': 'Unknown', 'days': 0}
+
+    # ===== OVERALL METRICS =====
+    overall = {}
+
+    # 1. OTD % (On-Time Delivery) - PRIORITY 1
+    if 'on_time_delivery_num' in df.columns and 'on_time_delivery_den' in df.columns:
+        otd_num = df['on_time_delivery_num'].sum()
+        otd_den = df['on_time_delivery_den'].sum()
+        overall['otd_pct'] = round((otd_num / otd_den * 100) if otd_den > 0 else 0, 2)
+        overall['otd_numerator'] = int(otd_num)
+        overall['otd_denominator'] = int(otd_den)
+
+    # 2. Batch Rate % - PRIORITY 2
+    if 'batch_rate_num' in df.columns and 'batch_rate_den' in df.columns:
+        batch_num = df['batch_rate_num'].sum()
+        batch_den = df['batch_rate_den'].sum()
+        overall['batch_rate_pct'] = round((batch_num / batch_den * 100) if batch_den > 0 else 0, 2)
+        overall['batch_numerator'] = int(batch_num)
+        overall['batch_denominator'] = int(batch_den)
+
+    # 3. Volume Metrics - PRIORITY 3
+    overall['total_orders'] = int(df['Order_Count'].sum()) if 'Order_Count' in df.columns else 0
+    overall['total_deliveries'] = int(df['total_deliveries'].sum()) if 'total_deliveries' in df.columns else 0
+    overall['total_trips'] = int(df['total_trips_completed'].sum()) if 'total_trips_completed' in df.columns else 0
+    overall['unique_stores'] = int(df['store_id'].nunique()) if 'store_id' in df.columns else 0
+
+    # Overall Batch Density (orders per trip)
+    overall['overall_batch_density'] = round(
+        overall['total_orders'] / overall['total_trips'] if overall['total_trips'] > 0 else 0,
+        2
+    )
+
+    # ===== STORE-LEVEL METRICS (MATCHING NASH FORMAT) =====
+    store_metrics = []
+    if 'store_id' in df.columns:
+        store_groups = df.groupby('store_id')
+
+        for store_id, store_data in store_groups:
+            store_metric = {
+                'store_id': int(store_id),
+                'route_count': int(store_data['total_trips_completed'].sum() if 'total_trips_completed' in store_data.columns else 0),
+
+                # Volume
+                'total_orders': int(store_data['Order_Count'].sum() if 'Order_Count' in store_data.columns else 0),
+                'total_deliveries': int(store_data['total_deliveries'].sum() if 'total_deliveries' in store_data.columns else 0),
+
+                # Batch Density (orders per route)
+                'batch_density': round(
+                    store_data['Order_Count'].sum() / store_data['total_trips_completed'].sum()
+                    if 'total_trips_completed' in store_data.columns and store_data['total_trips_completed'].sum() > 0
+                    else 0,
+                    2
+                ),
+            }
+
+            # OTD % for this store
+            if 'on_time_delivery_num' in store_data.columns and 'on_time_delivery_den' in store_data.columns:
+                otd_n = store_data['on_time_delivery_num'].sum()
+                otd_d = store_data['on_time_delivery_den'].sum()
+                store_metric['otd_pct'] = round((otd_n / otd_d * 100) if otd_d > 0 else 0, 2)
+                store_metric['otd_numerator'] = int(otd_n)
+                store_metric['otd_denominator'] = int(otd_d)
+
+            # Batch Rate % for this store
+            if 'batch_rate_num' in store_data.columns and 'batch_rate_den' in store_data.columns:
+                batch_n = store_data['batch_rate_num'].sum()
+                batch_d = store_data['batch_rate_den'].sum()
+                store_metric['batch_rate_pct'] = round((batch_n / batch_d * 100) if batch_d > 0 else 0, 2)
+                store_metric['batch_numerator'] = int(batch_n)
+                store_metric['batch_denominator'] = int(batch_d)
+
+            # Fulfillment types at this store
+            if 'grouped_by' in store_data.columns:
+                store_metric['fulfillment_types'] = store_data['grouped_by'].unique().tolist()
+
+            store_metrics.append(store_metric)
+
+    # ===== RANKINGS (FLEXIBLE: TOP/BOTTOM N) =====
+    stores_ranked = store_metrics.copy()
+
+    # Top N Best Performing Stores (highest OTD %)
+    top_n_stores_otd = sorted(
+        [s for s in stores_ranked if 'otd_pct' in s],
+        key=lambda x: x['otd_pct'],
+        reverse=True
+    )[:top_n] if top_n != -1 else sorted(
+        [s for s in stores_ranked if 'otd_pct' in s],
+        key=lambda x: x['otd_pct'],
+        reverse=True
+    )
+
+    # Bottom N Worst Performing Stores (lowest OTD %)
+    bottom_n_stores_otd = sorted(
+        [s for s in stores_ranked if 'otd_pct' in s],
+        key=lambda x: x['otd_pct']
+    )[:bottom_n] if bottom_n != -1 else sorted(
+        [s for s in stores_ranked if 'otd_pct' in s],
+        key=lambda x: x['otd_pct']
+    )
+
+    # Top N Stores by Batch Density
+    top_n_stores_batch = sorted(
+        [s for s in stores_ranked if 'batch_density' in s],
+        key=lambda x: x['batch_density'],
+        reverse=True
+    )[:top_n] if top_n != -1 else sorted(
+        [s for s in stores_ranked if 'batch_density' in s],
+        key=lambda x: x['batch_density'],
+        reverse=True
+    )
+
+    # Top N Stores by Batch Rate %
+    top_n_stores_batch_rate = sorted(
+        [s for s in stores_ranked if 'batch_rate_pct' in s],
+        key=lambda x: x['batch_rate_pct'],
+        reverse=True
+    )[:top_n] if top_n != -1 else sorted(
+        [s for s in stores_ranked if 'batch_rate_pct' in s],
+        key=lambda x: x['batch_rate_pct'],
+        reverse=True
+    )
+
+    # ===== FULFILLMENT TYPE BREAKDOWN =====
+    fulfillment_breakdown = {}
+    if 'grouped_by' in df.columns:
+        for ftype in df['grouped_by'].unique():
+            ftype_df = df[df['grouped_by'] == ftype]
+            fulfillment_breakdown[ftype] = {
+                'orders': int(ftype_df['Order_Count'].sum()) if 'Order_Count' in ftype_df.columns else 0,
+                'trips': int(ftype_df['total_trips_completed'].sum()) if 'total_trips_completed' in ftype_df.columns else 0,
+            }
+            # Add OTD for this fulfillment type
+            if 'on_time_delivery_num' in ftype_df.columns:
+                otd_n = ftype_df['on_time_delivery_num'].sum()
+                otd_d = ftype_df['on_time_delivery_den'].sum()
+                fulfillment_breakdown[ftype]['otd_pct'] = round((otd_n / otd_d * 100) if otd_d > 0 else 0, 2)
+            # Add Batch Rate for this fulfillment type
+            if 'batch_rate_num' in ftype_df.columns:
+                batch_n = ftype_df['batch_rate_num'].sum()
+                batch_d = ftype_df['batch_rate_den'].sum()
+                fulfillment_breakdown[ftype]['batch_rate_pct'] = round((batch_n / batch_d * 100) if batch_d > 0 else 0, 2)
+
+    # ===== BUILD REPORT (MATCHING NASH FORMAT) =====
+    ranking_label = f"Top {top_n}/Bottom {bottom_n}" if top_n != -1 else "All Stores"
+
+    report_lines = [
+        "=" * 80,
+        "WALMART BIGQUERY ANALYSIS - LEADERSHIP KPI DASHBOARD",
+        "=" * 80,
+        "",
+        f"📅 Date Range: {date_range['start']} to {date_range['end']} ({date_range['days']} days)",
+        f"📊 Store Rankings: {ranking_label}",
+        "",
+        "=" * 80,
+        "🎯 OVERALL PERFORMANCE METRICS",
+        "=" * 80,
+        ""
+    ]
+
+    # OTD Section
+    if 'otd_pct' in overall:
+        report_lines.extend([
+            "📊 ON-TIME DELIVERY (OTD)",
+            f"   Overall OTD: {overall['otd_pct']}%",
+            f"   On-Time: {overall['otd_numerator']:,} deliveries",
+            f"   Total: {overall['otd_denominator']:,} deliveries",
+            ""
+        ])
+
+    # Batch Rate Section
+    if 'batch_rate_pct' in overall:
+        report_lines.extend([
+            "📦 BATCH EFFICIENCY",
+            f"   Batch Rate: {overall['batch_rate_pct']}%",
+            f"   Batched: {overall['batch_numerator']:,} orders",
+            f"   Total: {overall['batch_denominator']:,} orders",
+            f"   Batch Density: {overall['overall_batch_density']} orders/trip",
+            ""
+        ])
+
+    # Volume Section
+    report_lines.extend([
+        "📈 VOLUME METRICS",
+        f"   Total Orders: {overall['total_orders']:,}",
+        f"   Total Deliveries: {overall['total_deliveries']:,}",
+        f"   Total Trips: {overall['total_trips']:,}",
+        f"   Unique Stores: {overall['unique_stores']:,}",
+        ""
+    ])
+
+    # Fulfillment Type Breakdown
+    if fulfillment_breakdown:
+        report_lines.extend([
+            "=" * 80,
+            "📋 FULFILLMENT TYPE BREAKDOWN",
+            "=" * 80,
+            ""
+        ])
+        for ftype, metrics in fulfillment_breakdown.items():
+            report_lines.append(f"▶ {ftype}:")
+            report_lines.append(f"   Orders: {metrics['orders']:,}")
+            report_lines.append(f"   Trips: {metrics['trips']:,}")
+            if 'otd_pct' in metrics:
+                report_lines.append(f"   OTD: {metrics['otd_pct']}%")
+            if 'batch_rate_pct' in metrics:
+                report_lines.append(f"   Batch Rate: {metrics['batch_rate_pct']}%")
+            report_lines.append("")
+
+    # Store Performance - OTD Rankings
+    if top_n_stores_otd or bottom_n_stores_otd:
+        report_lines.extend([
+            "=" * 80,
+            "🏪 STORE PERFORMANCE RANKINGS (BY OTD %)",
+            "=" * 80,
+            ""
+        ])
+
+        if top_n_stores_otd:
+            rank_label = f"Top {top_n} Stores:" if top_n != -1 else "All Stores (Best to Worst):"
+            report_lines.extend([rank_label, ""])
+            for i, store in enumerate(top_n_stores_otd, 1):
+                report_lines.append(
+                    f"   {i}. Store {store['store_id']}: {store['otd_pct']}% OTD "
+                    f"({store['route_count']:,} trips, {store['total_orders']:,} orders, "
+                    f"Batch: {store.get('batch_density', 'N/A')} orders/trip)"
+                )
+
+        if bottom_n_stores_otd and bottom_n != -1:
+            report_lines.extend(["", f"Bottom {bottom_n} Stores:", ""])
+            for i, store in enumerate(bottom_n_stores_otd, 1):
+                report_lines.append(
+                    f"   {i}. Store {store['store_id']}: {store['otd_pct']}% OTD "
+                    f"({store['route_count']:,} trips, {store['total_orders']:,} orders, "
+                    f"Batch: {store.get('batch_density', 'N/A')} orders/trip)"
+                )
+
+    # Store Performance - Batch Density Rankings
+    if top_n_stores_batch:
+        report_lines.extend([
+            "",
+            "=" * 80,
+            "📦 STORE PERFORMANCE RANKINGS (BY BATCH DENSITY)",
+            "=" * 80,
+            "",
+            f"Top {top_n} Stores by Batch Density:" if top_n != -1 else "All Stores (Highest Batch Density):",
+            ""
+        ])
+        for i, store in enumerate(top_n_stores_batch, 1):
+            report_lines.append(
+                f"   {i}. Store {store['store_id']}: {store['batch_density']} orders/trip "
+                f"({store['total_orders']:,} orders, {store['route_count']:,} trips, "
+                f"OTD: {store.get('otd_pct', 'N/A')}%)"
+            )
+
+    # Store Performance - Batch Rate % Rankings
+    if top_n_stores_batch_rate:
+        report_lines.extend([
+            "",
+            "=" * 80,
+            "📊 STORE PERFORMANCE RANKINGS (BY BATCH RATE %)",
+            "=" * 80,
+            "",
+            f"Top {top_n} Stores by Batch Rate:" if top_n != -1 else "All Stores (Highest Batch Rate):",
+            ""
+        ])
+        for i, store in enumerate(top_n_stores_batch_rate, 1):
+            report_lines.append(
+                f"   {i}. Store {store['store_id']}: {store['batch_rate_pct']}% "
+                f"({store.get('batch_numerator', 0):,}/{store.get('batch_denominator', 0):,} orders, "
+                f"OTD: {store.get('otd_pct', 'N/A')}%)"
+            )
+
+    report_lines.extend([
+        "",
+        "=" * 80,
+        "✅ ANALYSIS COMPLETE - Walmart BigQuery Data",
+        "=" * 80
+    ])
+
+    return {
+        'report': '\n'.join(report_lines),
+        'summary': {
+            'data_source': 'Walmart BigQuery',
+            'date_range': date_range,
+            'ranking_config': {
+                'top_n': top_n if top_n != -1 else 'All',
+                'bottom_n': bottom_n if bottom_n != -1 else 'None'
+            }
+        },
+        'overall': overall,
+        'store_metrics': store_metrics,
+        'fulfillment_breakdown': fulfillment_breakdown,
+        'top_stores_otd': top_n_stores_otd,
+        'bottom_stores_otd': bottom_n_stores_otd,
+        'top_stores_batch_density': top_n_stores_batch,
+        'top_stores_batch_rate': top_n_stores_batch_rate,
+    }
+
+
+def main():
+    """Main entry point"""
+    input_data = json.load(sys.stdin)
+    csv_path = input_data['csv_path']
+
+    # Get flexible ranking options (default: top 10, bottom 10)
+    top_n = input_data.get('top_n', 10)
+    bottom_n = input_data.get('bottom_n', 10)
+
+    # Support "all" option
+    if str(top_n).lower() == 'all':
+        top_n = -1
+        bottom_n = -1
+
+    results = calculate_bigquery_kpis(csv_path, top_n, bottom_n)
+
+    # Output JSON with default=str to handle any remaining non-serializable types
+    result_json = json.dumps(results, indent=2, default=str)
+    result_json = result_json.replace('NaN', '0').replace('Infinity', '0')
+    print(result_json)
+
+
+if __name__ == '__main__':
+    main()

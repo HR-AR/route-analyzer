@@ -27,13 +27,16 @@ def analyze_store_metrics(csv_path: str) -> Dict[str, Any]:
 
     df = pd.read_csv(csv_path)
 
-    # Handle different date column names (Tableau uses "Report Date")
-    if 'Report Date' in df.columns and 'Date' not in df.columns:
+    # Handle different date column names
+    # Tableau uses "Report Date", BigQuery uses "slot_dt"
+    if 'slot_dt' in df.columns:
+        df['Date'] = pd.to_datetime(df['slot_dt'], errors='coerce')
+    elif 'Report Date' in df.columns and 'Date' not in df.columns:
         df['Date'] = pd.to_datetime(df['Report Date'], errors='coerce')
     elif 'Date' in df.columns:
         df['Date'] = pd.to_datetime(df['Date'], errors='coerce')
     else:
-        raise ValueError("CSV must have either 'Date' or 'Report Date' column")
+        raise ValueError("CSV must have either 'Date', 'Report Date', or 'slot_dt' column")
 
     df = df[df['Date'] >= '2025-10-04']
 

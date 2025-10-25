@@ -111,7 +111,7 @@ def analyze_pending_orders(csv_path, top_n=50):
 def main():
     # Read request from stdin
     request = json.loads(sys.stdin.read())
-    csv_path = request['csvPath']
+    csv_path = request.get('csv_path') or request.get('csvPath')
     top_n = request.get('topN', 50)  # Default to 50 if not provided
 
     # Analyze

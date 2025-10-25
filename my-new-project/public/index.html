@@ -30,11 +30,11 @@
     <nav class="tabs">
       <button class="tab-btn active" data-tab="upload">
         <span class="tab-icon">📤</span>
-        Upload CSV
+        Nash CSV
       </button>
-      <button class="tab-btn" data-tab="tableau">
-        <span class="tab-icon">📊</span>
-        Fetch from Tableau
+      <button class="tab-btn" data-tab="bigquery">
+        <span class="tab-icon">🔵</span>
+        Walmart BigQuery
       </button>
       <button class="tab-btn" data-tab="merge">
         <span class="tab-icon">🔀</span>
@@ -147,50 +147,108 @@
         </div>
       </div>
 
-      <!-- Tableau Tab -->
-      <div id="tableau-tab" class="tab-pane">
+      <!-- BigQuery Tab -->
+      <div id="bigquery-tab" class="tab-pane">
         <div class="form-section">
-          <h3>📊 Fetch Data from Tableau</h3>
-          
+          <h3>🔵 Fetch Data from BigQuery (Live)</h3>
+
           <div class="form-group">
             <label>Time Range</label>
             <div class="radio-group">
               <label class="radio-card">
-                <input type="radio" name="timeRange" value="7" checked>
+                <input type="radio" name="bqTimeRange" value="7">
                 <span>Last 7 days</span>
               </label>
               <label class="radio-card">
-                <input type="radio" name="timeRange" value="30">
+                <input type="radio" name="bqTimeRange" value="30" checked>
                 <span>Last 30 days</span>
               </label>
               <label class="radio-card">
-                <input type="radio" name="timeRange" value="custom">
-                <span>Custom range</span>
+                <input type="radio" name="bqTimeRange" value="90">
+                <span>Last 90 days</span>
               </label>
-            </div>
-          </div>
-
-          <div id="customDateRange" class="form-group" style="display: none;">
-            <div class="date-inputs">
-              <div>
-                <label for="startDate">Start Date</label>
-                <input type="date" id="startDate">
-              </div>
-              <div>
-                <label for="endDate">End Date</label>
-                <input type="date" id="endDate">
-              </div>
             </div>
           </div>
 
           <div class="form-group">
-            <label for="tableauStore">Store Filter (optional)</label>
-            <input type="text" id="tableauStore" placeholder="Leave empty for all stores">
+            <label for="bqCarrier">Carrier</label>
+            <select id="bqCarrier" class="form-select">
+              <option value="Nash" selected>Nash</option>
+              <option value="NTG">NTG</option>
+              <option value="All">All Carriers</option>
+            </select>
           </div>
 
-          <button id="fetchTableau" class="btn btn-primary btn-large">
-            📥 Fetch & Analyze
+          <div class="form-group">
+            <label for="bqClient">Client</label>
+            <select id="bqClient" class="form-select">
+              <option value="Walmart" selected>Walmart</option>
+              <option value="Sam's Club">Sam's Club</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="bqType">Delivery Type</label>
+            <select id="bqType" class="form-select">
+              <option value="Unscheduled Delivery" selected>Unscheduled Delivery</option>
+              <option value="Scheduled Delivery">Scheduled Delivery</option>
+              <option value="Express">Express</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="bqOversized">Oversized (OS)</label>
+            <select id="bqOversized" class="form-select">
+              <option value="0" selected>OS = 0 (Non-oversized)</option>
+              <option value="1">OS = 1 (Oversized)</option>
+              <option value="all">All</option>
+            </select>
+          </div>
+
+          <div style="display: flex; gap: 10px; margin-top: 1rem;">
+            <button id="fetchBigQuery" class="btn btn-primary btn-large">
+              📥 Fetch Data
+            </button>
+
+            <button id="downloadBigQueryCSV" class="btn btn-success" style="display: none;">
+              💾 Download CSV
+            </button>
+          </div>
+        </div>
+
+        <!-- Analysis Section for BigQuery Data -->
+        <div id="bigqueryAnalysisSection" class="analysis-section" style="display: none; margin-top: 2rem;">
+          <h3>📊 Walmart BigQuery Analysis</h3>
+
+          <div class="form-group">
+            <label>Store Rankings</label>
+            <div style="display: flex; gap: 15px; flex-wrap: wrap;">
+              <label class="checkbox-label">
+                <input type="radio" name="bqRanking" value="10" checked>
+                Top/Bottom 10
+              </label>
+              <label class="checkbox-label">
+                <input type="radio" name="bqRanking" value="15">
+                Top/Bottom 15
+              </label>
+              <label class="checkbox-label">
+                <input type="radio" name="bqRanking" value="20">
+                Top/Bottom 20
+              </label>
+              <label class="checkbox-label">
+                <input type="radio" name="bqRanking" value="all">
+                All Stores
+              </label>
+            </div>
+          </div>
+
+          <button id="runBigQueryAnalysis" class="btn btn-primary" style="margin-top: 1rem;">
+            🔍 Run Analysis
           </button>
+
+          <p style="color: #888; font-size: 0.9rem; margin-top: 1rem;">
+            Analysis includes: OTD %, Batch Rate %, Volume Metrics, Store Rankings
+          </p>
         </div>
       </div>
 
@@ -218,8 +276,54 @@
             </label>
           </div>
 
-          <button id="mergeFiles Btn" class="btn btn-success btn-large" disabled>
+          <button id="mergeFilesBtn" class="btn btn-success btn-large" disabled>
             🔀 Merge Files
+          </button>
+
+          <button id="downloadMergedCSV" class="btn btn-success" style="display: none; margin-left: 10px;">
+            💾 Download Merged CSV
+          </button>
+        </div>
+
+        <!-- Analysis Section for Merged Data -->
+        <div id="mergeAnalysisSection" class="analysis-section" style="display: none; margin-top: 2rem;">
+          <h3>📊 Analyze Merged Data</h3>
+          <div class="analysis-grid">
+            <label class="analysis-card">
+              <input type="radio" name="mergeAnalysis" value="store-metrics" checked>
+              <div class="card-content">
+                <div class="card-icon">🏪</div>
+                <h4>Store Metrics</h4>
+                <p>Performance breakdown by store</p>
+              </div>
+            </label>
+
+            <label class="analysis-card">
+              <input type="radio" name="mergeAnalysis" value="store-analysis">
+              <div class="card-content">
+                <div class="card-icon">🏬</div>
+                <h4>Store Analysis</h4>
+                <p>Day-by-day breakdown for a store</p>
+              </div>
+            </label>
+
+            <label class="analysis-card">
+              <input type="radio" name="mergeAnalysis" value="multiday">
+              <div class="card-content">
+                <div class="card-icon">📅</div>
+                <h4>Multi-Day Routes</h4>
+                <p>Routes spanning multiple days</p>
+              </div>
+            </label>
+          </div>
+
+          <div id="mergeStoreInput" class="store-input" style="display: none; margin-top: 1rem;">
+            <label for="mergeStoreId">Store ID (required for Store/Multi-Day analysis)</label>
+            <input type="text" id="mergeStoreId" placeholder="e.g., 5930">
+          </div>
+
+          <button id="runMergeAnalysis" class="btn btn-success btn-large" style="margin-top: 1rem;">
+            🚀 Run Analysis
           </button>
         </div>
       </div>

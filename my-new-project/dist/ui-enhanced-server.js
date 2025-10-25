@@ -2,10 +2,10 @@ import express from 'express';
 import multer from 'multer';
 import { spawn } from 'child_process';
 import { existsSync, readFileSync, unlinkSync, mkdirSync } from 'fs';
-import { join } from 'path';
+import { join, resolve, basename } from 'path';
 import { getPythonPath } from './python-helper.js';
 const app = express();
-const PORT = process.env.PORT ? parseInt(process.env.PORT) : 3000;
+const PORT = process.env.PORT ? parseInt(process.env.PORT) : 3003;
 // Ensure directories exist
 const UPLOAD_DIR = 'uploads';
 const DATA_DIR = 'data';
@@ -54,11 +54,11 @@ app.post('/api/analyze', upload.single('csv'), async (req, res) => {
 // POST /api/analyze-path - Run analysis on existing file
 app.post('/api/analyze-path', async (req, res) => {
     try {
-        const { filePath, analysisType, storeId } = req.body;
+        const { filePath, analysisType, storeId, ...additionalParams } = req.body;
         if (!existsSync(filePath)) {
             return res.status(404).json({ error: 'File not found' });
         }
-        const result = await runPythonAnalysis(analysisType, filePath, storeId);
+        const result = await runPythonAnalysis(analysisType, filePath, storeId, additionalParams);
         res.json(result);
     }
     catch (error) {
@@ -92,7 +92,8 @@ app.get('/api/tableau-fetch', async (req, res) => {
                 success: true,
                 filePath: outputPath,
                 rows,
-                message: 'Data fetched successfully'
+                message: 'Data fetched successfully',
+                note: 'Tableau data format is different from route analysis format. Download the CSV to view the data.'
             });
         }
         else {
@@ -101,6 +102,81 @@ app.get('/api/tableau-fetch', async (req, res) => {
     }
     catch (error) {
         console.error('Tableau fetch error:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+// GET /api/bigquery-fetch - Fetch data from BigQuery
+app.get('/api/bigquery-fetch', async (req, res) => {
+    try {
+        const { days, carrier, client, type, oversized } = req.query;
+        const pythonPath = getPythonPath();
+        const args = ['./scripts/auto_fetch_bigquery.py'];
+        const outputPath = join(DATA_DIR, `bigquery-${Date.now()}.csv`);
+        args.push('--output', outputPath);
+        if (days)
+            args.push('--days', days);
+        if (carrier)
+            args.push('--carrier', carrier);
+        if (client)
+            args.push('--client', client);
+        if (type)
+            args.push('--type', type);
+        if (oversized)
+            args.push('--oversized', oversized);
+        console.log('Fetching from BigQuery:', pythonPath, args);
+        const result = await runPythonScript(args);
+        // Check if file was created
+        if (existsSync(outputPath)) {
+            // Convert BigQuery format to Tableau-compatible format
+            const tableauPath = outputPath.replace('.csv', '-tableau.csv');
+            const convertArgs = ['./scripts/convert_bigquery_to_tableau_format.py', outputPath, tableauPath];
+            console.log('Converting BigQuery data to Tableau format...');
+            await runPythonScript(convertArgs);
+            // Count rows
+            const content = readFileSync(tableauPath, 'utf-8');
+            const rows = content.split('\n').length - 1; // Subtract header
+            res.json({
+                success: true,
+                filePath: tableauPath, // Return converted file path
+                originalPath: outputPath, // Also provide original for download
+                rows,
+                message: 'Data fetched successfully from BigQuery and converted to analysis format',
+                source: 'bigquery'
+            });
+        }
+        else {
+            throw new Error('Failed to fetch data from BigQuery');
+        }
+    }
+    catch (error) {
+        console.error('BigQuery fetch error:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+// GET /api/download - Download a CSV file
+app.get('/api/download', (req, res) => {
+    try {
+        const { path: filePath } = req.query;
+        if (!filePath || typeof filePath !== 'string') {
+            return res.status(400).json({ error: 'File path required' });
+        }
+        // Security: only allow downloads from data directory
+        const fullPath = resolve(filePath);
+        const dataDir = resolve(DATA_DIR);
+        if (!fullPath.startsWith(dataDir)) {
+            return res.status(403).json({ error: 'Access denied' });
+        }
+        if (!existsSync(fullPath)) {
+            return res.status(404).json({ error: 'File not found' });
+        }
+        // Set download headers
+        const filename = basename(fullPath);
+        res.setHeader('Content-Type', 'text/csv');
+        res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+        res.sendFile(fullPath);
+    }
+    catch (error) {
+        console.error('Download error:', error);
         res.status(500).json({ error: error.message });
     }
 });
@@ -151,11 +227,25 @@ app.get('/health', (req, res) => {
     res.json({ status: 'healthy', timestamp: new Date().toISOString() });
 });
 // ===== HELPER FUNCTIONS =====
-function runPythonAnalysis(analysisType, csvPath, storeId) {
+function runPythonAnalysis(analysisType, csvPath, storeId, additionalParams = {}) {
     return new Promise((resolve, reject) => {
         let scriptPath;
         let args;
         switch (analysisType) {
+            case 'bigquery-metrics':
+                // Use old basic metrics script
+                scriptPath = './scripts/analysis/bigquery_metrics_analysis.py';
+                args = [];
+                break;
+            case 'bigquery-kpi':
+                // Use new leadership KPI analysis
+                scriptPath = './scripts/analysis/bigquery_kpi_analysis.py';
+                args = [];
+                break;
+            case 'tableau-metrics':
+                scriptPath = './scripts/analysis/tableau_metrics_analysis.py';
+                args = [];
+                break;
             case 'store-metrics':
                 scriptPath = './scripts/analysis/store_metrics_breakdown.py';
                 args = [];
@@ -164,8 +254,28 @@ function runPythonAnalysis(analysisType, csvPath, storeId) {
                 scriptPath = './scripts/analysis/driver_store_analysis.py';
                 args = storeId ? [storeId] : [];
                 break;
+            case 'multiday':
+                scriptPath = './scripts/analysis/multiday_route_analysis.py';
+                args = storeId ? [storeId] : [];
+                break;
+            case 'time-breakdown':
+                scriptPath = './scripts/analysis/detailed_time_analysis.py';
+                args = [];
+                break;
             case 'returns':
                 scriptPath = './scripts/analysis/returns_breakdown.py';
+                args = [];
+                break;
+            case 'store-analysis':
+                scriptPath = './scripts/analysis/store_specific_analysis.py';
+                args = storeId ? [storeId] : [];
+                break;
+            case 'pending-orders':
+                scriptPath = './scripts/analysis/pending_orders_analysis.py';
+                args = [];
+                break;
+            case 'failed-orders':
+                scriptPath = './scripts/analysis/route_analyzer.py'; // This has failed orders analysis
                 args = [];
                 break;
             default:
@@ -188,23 +298,33 @@ function runPythonAnalysis(analysisType, csvPath, storeId) {
             }
             try {
                 const result = JSON.parse(stdout);
-                // Read report files if they exist
-                const reportFile = `${analysisType}-report.txt`;
-                const dataFile = `${analysisType}-data.json`;
-                let report = '';
-                let data = result;
-                if (existsSync(reportFile)) {
-                    report = readFileSync(reportFile, 'utf-8');
+                // Extract report from Python output
+                // Tableau returns: { report: "string", summary: {...}, ... }
+                // Store metrics returns: { overall: {...}, store_metrics: [...], ... }
+                let report = result.report || '';
+                let summary = '';
+                // Handle different Python output formats
+                if (typeof result.summary === 'string') {
+                    // Already a string summary
+                    summary = result.summary;
                 }
-                if (existsSync(dataFile)) {
-                    data = JSON.parse(readFileSync(dataFile, 'utf-8'));
+                else if (result.report) {
+                    // Use report for summary (Tableau style)
+                    summary = result.report.substring(0, 2000);
+                }
+                else if (result.overall) {
+                    // Generate summary from store metrics
+                    summary = `Total Routes: ${result.overall.total_routes || 0}\n`;
+                    summary += `Total Orders: ${result.overall.total_orders || 0}\n`;
+                    summary += `Average DPH: ${result.overall.avg_dph?.toFixed(2) || 0}\n`;
+                    summary += `Delivery Rate: ${((result.overall.total_delivered / result.overall.total_orders * 100) || 0).toFixed(1)}%\n`;
                 }
                 resolve({
                     success: true,
-                    report,
-                    summary: report.substring(0, 2000), // First part
-                    detailed: report,
-                    data,
+                    report: report || summary,
+                    summary: summary || report,
+                    detailed: report || summary,
+                    data: result,
                     stats: extractStats(result)
                 });
             }
@@ -212,14 +332,20 @@ function runPythonAnalysis(analysisType, csvPath, storeId) {
                 reject(new Error('Failed to parse analysis results'));
             }
         });
-        // Send CSV path to Python script
-        pythonProcess.stdin.write(JSON.stringify({ csv_path: csvPath }));
+        // Send CSV path and additional params to Python script
+        const inputData = {
+            csv_path: csvPath,
+            ...additionalParams
+        };
+        pythonProcess.stdin.write(JSON.stringify(inputData));
         pythonProcess.stdin.end();
     });
 }
 function runPythonScript(args) {
     return new Promise((resolve, reject) => {
-        const pythonProcess = spawn(getPythonPath(), args);
+        const pythonPath = getPythonPath();
+        console.log(`🐍 Executing Python: ${pythonPath} ${args.join(' ')}`);
+        const pythonProcess = spawn(pythonPath, args);
         let stdout = '';
         let stderr = '';
         pythonProcess.stdout.on('data', (chunk) => {

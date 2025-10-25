@@ -7,11 +7,18 @@ import { join } from 'path';
  * - Falls back to system python3 (Render deployment)
  */
 export function getPythonPath(): string {
-  // Check if venv exists (local development)
+  // Check if venv exists in parent directory (local development)
+  const parentVenvPython = join(process.cwd(), '..', 'venv', 'bin', 'python3');
+  if (existsSync(parentVenvPython)) {
+    return parentVenvPython;
+  }
+
+  // Check if venv exists in current directory
   const venvPython = join(process.cwd(), 'venv', 'bin', 'python3');
   if (existsSync(venvPython)) {
     return venvPython;
   }
+
   // Use full path to ensure we get the Homebrew Python with all packages
   return '/opt/homebrew/bin/python3';
 }
