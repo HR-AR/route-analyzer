@@ -391,16 +391,18 @@ function displayResults(result) {
   resultsSection.style.display = 'block';
   resultsSection.scrollIntoView({ behavior: 'smooth' });
 
-  // Display text reports - FIXED to handle Tableau format
-  const summaryContent = result.summary || result.report || 'No summary available';
+  // Display text reports - FIXED to handle both Tableau and CSV formats
+  // Tableau: { summary: {object}, report: "string", ... }
+  // CSV: { summary: "string", detailed: "string", data: {object} }
+  const summaryContent = (typeof result.summary === 'string' ? result.summary : result.report) || 'No summary available';
   const detailedContent = result.detailed || result.report || 'No detailed report available';
 
-  console.log('📝 Summary content length:', summaryContent.length);
-  console.log('📝 Detailed content length:', detailedContent.length);
+  console.log('📝 Summary:', typeof summaryContent, summaryContent?.substring(0, 100));
+  console.log('📝 Detailed:', typeof detailedContent, detailedContent?.substring(0, 100));
 
   summaryText.textContent = summaryContent;
   detailedText.textContent = detailedContent;
-  rawJson.textContent = JSON.stringify(result.data || result, null, 2);
+  rawJson.textContent = JSON.stringify(result, null, 2);
   
   // Generate stats cards
   if (result.stats) {
