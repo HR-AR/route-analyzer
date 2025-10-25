@@ -1,0 +1,133 @@
+#!/usr/bin/env python3
+"""
+BigQuery Store Metrics Analysis - Walmart Data  
+Shows useful operational metrics per store:
+- Dwell time at store
+- Load time
+- Driving time (planned trip time)
+- Volume metrics (trips, orders, stores)
+"""
+
+import sys
+import json
+import pandas as pd
+from typing import Dict, Any
+
+def safe_divide(num, den):
+    """Safe division with NaN/Inf handling"""
+    if pd.isna(num) or pd.isna(den) or den == 0:
+        return 0
+    result = num / den
+    if pd.isna(result) or result == float('inf') or result == float('-inf'):
+        return 0
+    return round(result, 2)
+
+def analyze_bigquery_store_metrics(csv_path: str, top_n: int = 10, bottom_n: int = 10) -> Dict[str, Any]:
+    """Analyze BigQuery data with store-level operational metrics"""
+    
+    df = pd.read_csv(csv_path)
+    print(f"Loaded {len(df)} rows", file=sys.stderr)
+    print(f"Columns: {df.columns.tolist()[:20]}", file=sys.stderr)
+    
+    # Normalize column names (handle case sensitivity issues)
+    df.columns = df.columns.str.strip()
+    
+    # Get date range
+    if 'slot_dt' in df.columns:
+        df['Date'] = pd.to_datetime(df['slot_dt'], errors='coerce')
+    
+    # ===== OVERALL METRICS =====
+    total_routes = int(df['total_trips_completed'].sum())
+    total_orders = int(df['Order_Count'].sum())
+    
+    # Calculate average dwell time, load time, driving time
+    avg_dwell = safe_divide(df['DWELL_TIME_PER_TRIP_NUM'].sum(), df['DWELL_TIME_PER_TRIP_DEN'].sum())
+    avg_load = safe_divide(df['loading_time_per_trip_num'].sum(), df['loading_time_per_trip_den'].sum())
+    avg_drive = safe_divide(df['driving_time_per_trip_num'].sum(), df['driving_time_per_trip_den'].sum())
+    
+    overall = {
+        'total_routes': total_routes,
+        'total_orders': total_orders,
+        'total_delivered': int(df['Total_Deliveries_Delivered_Returned'].sum()),
+        'unique_stores': int(df['store_id'].nunique()),
+        'batch_density': safe_divide(total_orders, total_routes),
+        'avg_dwell_time': avg_dwell,
+        'avg_load_time': avg_load,
+        'avg_driving_time': avg_drive,
+        'avg_total_time': avg_dwell + avg_load + avg_drive
+    }
+    
+    # ===== STORE-LEVEL METRICS =====
+    store_metrics = []
+    for store_id, store_data in df.groupby('store_id'):
+        s_routes = int(store_data['total_trips_completed'].sum())
+        s_orders = int(store_data['Order_Count'].sum())
+        
+        # Calculate times for this store
+        s_dwell = safe_divide(
+            store_data['DWELL_TIME_PER_TRIP_NUM'].sum(),
+            store_data['DWELL_TIME_PER_TRIP_DEN'].sum()
+        )
+        s_load = safe_divide(
+            store_data['loading_time_per_trip_num'].sum(),
+            store_data['loading_time_per_trip_den'].sum()
+        )
+        s_drive = safe_divide(
+            store_data['driving_time_per_trip_num'].sum(),
+            store_data['driving_time_per_trip_den'].sum()
+        )
+        
+        store_metrics.append({
+            'store_id': int(store_id),
+            'route_count': s_routes,
+            'total_orders': s_orders,
+            'delivered_orders': int(store_data['Total_Deliveries_Delivered_Returned'].sum()),
+            'batch_density': safe_divide(s_orders, s_routes),
+            'avg_dwell_time': s_dwell,
+            'avg_load_time': s_load,
+            'avg_driving_time': s_drive,
+            'avg_total_time': s_dwell + s_load + s_drive,
+            'carriers': store_data['carrier_org_nm'].unique().tolist() if 'carrier_org_nm' in store_data.columns else ['Nash']
+        })
+    
+    # Sort stores by batch density (highest first)
+    stores_sorted = sorted(store_metrics, key=lambda x: x['batch_density'], reverse=True)
+    
+    # Apply ranking
+    if top_n == -1:
+        top_10_stores = stores_sorted
+        bottom_10_stores = []
+    else:
+        top_10_stores = stores_sorted[:top_n]
+        bottom_10_stores = stores_sorted[-bottom_n:] if bottom_n > 0 else []
+    
+    return {
+        'overall': overall,
+        'store_metrics': store_metrics,
+        'top_10_stores': top_10_stores,
+        'bottom_10_stores': bottom_10_stores
+    }
+
+def main():
+    try:
+        input_data = json.load(sys.stdin)
+        csv_path = input_data['csv_path']
+        top_n = input_data.get('top_n', 10)
+        bottom_n = input_data.get('bottom_n', 10)
+        
+        if str(top_n).lower() == 'all':
+            top_n = -1
+            bottom_n = -1
+        
+        results = analyze_bigquery_store_metrics(csv_path, top_n, bottom_n)
+        result_json = json.dumps(results, indent=2, default=str)
+        result_json = result_json.replace('NaN', '0').replace('Infinity', '0').replace('-Infinity', '0')
+        print(result_json)
+    except Exception as e:
+        print(f"Error in analysis: {str(e)}", file=sys.stderr)
+        import traceback
+        traceback.print_exc(file=sys.stderr)
+        sys.exit(1)
+
+if __name__ == '__main__':
+    main()
