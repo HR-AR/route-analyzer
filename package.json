@@ -1,18 +1,50 @@
 {
-  "name": "quick-analysis",
-  "version": "1.0.0",
-  "description": "Quick Analysis Dashboard with Skills System",
+  "name": "route-analysis-dashboard",
+  "version": "0.1.0",
   "type": "module",
-  "scripts": {
-    "learn:track": "node scripts/skill-learner.mjs track",
-    "learn:record": "node scripts/skill-learner.mjs record",
-    "learn:list": "node scripts/skill-learner.mjs list",
-    "skill:create": "node scripts/skill-helper.mjs create",
-    "skill:list": "node scripts/skill-helper.mjs list",
-    "start": "node src/index.js",
-    "dev": "nodemon src/index.js"
+  "main": "dist/route-analyzer.js",
+  "bin": {
+    "route-analyzer": "dist/cli.js"
   },
-  "keywords": ["analysis", "dashboard", "skills"],
-  "author": "",
-  "license": "ISC"
+  "scripts": {
+    "fetch": "../venv/bin/python3 scripts/auto_fetch_bigquery.py --output data/latest_data.csv",
+    "fetch-7days": "../venv/bin/python3 scripts/auto_fetch_bigquery.py --output data/latest_data.csv --days 7",
+    "fetch-90days": "../venv/bin/python3 scripts/auto_fetch_bigquery.py --output data/latest_data.csv --days 90",
+    "fetch-nash": "./fetch-nash-data.sh",
+    "start": "node dist/ui-enhanced-server.js",
+    "dev": "tsx src/ui-enhanced-server.ts",
+    "ui": "tsx src/ui-enhanced-server.ts",
+    "ui-old": "tsx src/ui-server.ts",
+    "time-breakdown": "node dist/time-breakdown.js",
+    "store-analysis": "node dist/store-analysis.js",
+    "store-metrics": "node dist/store-metrics.js",
+    "driver-store-analysis": "node dist/driver-store-analysis.js",
+    "multiday-analysis": "node dist/multiday-analysis.js",
+    "returns-breakdown": "node dist/returns-breakdown.js",
+    "pending-orders": "node dist/pending-orders.js",
+    "failed-orders-analysis": "node dist/failed-orders-analysis.js",
+    "fetch-tableau": "tsx src/tableau-fetcher.ts",
+    "fetch-and-analyze": "tsx src/fetch-and-analyze.ts",
+    "merge-csv": "../venv/bin/python3 scripts/merge_csv_files.py",
+    "build": "tsc",
+    "lint": "echo 'Linting...' && exit 0",
+    "test": "tsx --test tests/**/*.test.ts",
+    "validate": "npm run lint && npm test && npm run build",
+    "prp": "node scripts/context-engine.mjs prp",
+    "scout": "node scripts/context-engine.mjs scout",
+    "implement": "node scripts/context-engine.mjs implement",
+    "sync": "node scripts/context-engine.mjs sync"
+  },
+  "dependencies": {
+    "@types/express": "^5.0.3",
+    "@types/multer": "^2.0.0",
+    "express": "^5.1.0",
+    "multer": "^2.0.2",
+    "zod": "^3.22.4"
+  },
+  "devDependencies": {
+    "@types/node": "^20.10.0",
+    "tsx": "^4.7.0",
+    "typescript": "^5.3.3"
+  }
 }

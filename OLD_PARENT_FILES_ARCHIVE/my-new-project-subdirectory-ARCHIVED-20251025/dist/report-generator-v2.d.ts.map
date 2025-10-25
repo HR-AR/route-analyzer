@@ -1,0 +1,1 @@
+{"version":3,"file":"report-generator-v2.d.ts","sourceRoot":"","sources":["../src/report-generator-v2.ts"],"names":[],"mappings":"AAAA;;;GAGG;AAEH,MAAM,WAAW,cAAc;IAC7B,CAAC,GAAG,EAAE,MAAM,GAAG,GAAG,CAAC;CACpB;AAaD;;GAEG;AACH,wBAAgB,cAAc,CAAC,IAAI,EAAE,cAAc,EAAE,YAAY,EAAE,MAAM,EAAE,OAAO,GAAE,MAAM,GAAG,MAAW,GAAG;IAAE,MAAM,EAAE,MAAM,CAAC;IAAC,OAAO,EAAE,MAAM,CAAA;CAAE,CA0B7I"}

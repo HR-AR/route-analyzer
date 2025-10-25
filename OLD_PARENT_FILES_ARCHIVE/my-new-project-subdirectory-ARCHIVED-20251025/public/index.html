@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Route Analysis Dashboard - Walmart</title>
+  <link rel="stylesheet" href="/css/styles.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+</head>
+<body>
+  <!-- Theme Toggle -->
+  <button id="themeToggle" class="theme-toggle" aria-label="Toggle dark mode">
+    <span class="theme-icon">🌙</span>
+  </button>
+
+  <!-- Main Container -->
+  <div class="container">
+    <!-- Header -->
+    <header class="header">
+      <div class="header-content">
+        <h1 class="title">
+          <span class="emoji">🐶</span>
+          Route Analysis Dashboard
+        </h1>
+        <p class="subtitle">Walmart Last-Mile Delivery Performance Analytics</p>
+      </div>
+    </header>
+
+    <!-- Tab Navigation -->
+    <nav class="tabs">
+      <button class="tab-btn active" data-tab="upload">
+        <span class="tab-icon">📤</span>
+        Nash CSV
+      </button>
+      <button class="tab-btn" data-tab="bigquery">
+        <span class="tab-icon">🔵</span>
+        Walmart BigQuery
+      </button>
+      <button class="tab-btn" data-tab="merge">
+        <span class="tab-icon">🔀</span>
+        Merge CSV Files
+      </button>
+    </nav>
+
+    <!-- Tab Content -->
+    <main class="tab-content">
+      
+      <!-- Upload CSV Tab -->
+      <div id="upload-tab" class="tab-pane active">
+        <div class="upload-section">
+          <div class="upload-area" id="uploadArea">
+            <div class="upload-icon">📁</div>
+            <h3>Upload CSV File</h3>
+            <p>Drag and drop your CSV file here, or click to browse</p>
+            <input type="file" id="fileInput" accept=".csv" hidden>
+            <button class="btn btn-primary" onclick="document.getElementById('fileInput').click()">
+              Choose File
+            </button>
+            <div id="fileName" class="file-name"></div>
+          </div>
+        </div>
+
+        <div class="analysis-section">
+          <h3>Analysis Type</h3>
+          <div class="analysis-grid">
+            <label class="analysis-card">
+              <input type="radio" name="analysis" value="store-metrics" checked>
+              <div class="card-content">
+                <div class="card-icon">🏪</div>
+                <h4>Store Metrics</h4>
+                <p>Overall performance breakdown by store</p>
+              </div>
+            </label>
+
+            <label class="analysis-card">
+              <input type="radio" name="analysis" value="driver-store">
+              <div class="card-content">
+                <div class="card-icon">👤</div>
+                <h4>Driver Analysis</h4>
+                <p>Driver performance at specific store</p>
+              </div>
+            </label>
+
+            <label class="analysis-card">
+              <input type="radio" name="analysis" value="multiday">
+              <div class="card-content">
+                <div class="card-icon">📅</div>
+                <h4>Multi-Day Routes</h4>
+                <p>Routes spanning multiple days</p>
+              </div>
+            </label>
+
+            <label class="analysis-card">
+              <input type="radio" name="analysis" value="time-breakdown">
+              <div class="card-content">
+                <div class="card-icon">⏱️</div>
+                <h4>Time Breakdown</h4>
+                <p>Dwell and load time analysis</p>
+              </div>
+            </label>
+
+            <label class="analysis-card">
+              <input type="radio" name="analysis" value="returns">
+              <div class="card-content">
+                <div class="card-icon">🔄</div>
+                <h4>Returns Analysis</h4>
+                <p>Returns pattern identification</p>
+              </div>
+            </label>
+
+            <label class="analysis-card">
+              <input type="radio" name="analysis" value="store-analysis">
+              <div class="card-content">
+                <div class="card-icon">🏬</div>
+                <h4>Store Analysis</h4>
+                <p>Day-by-day breakdown for a single store</p>
+              </div>
+            </label>
+
+            <label class="analysis-card">
+              <input type="radio" name="analysis" value="pending-orders">
+              <div class="card-content">
+                <div class="card-icon">⏳</div>
+                <h4>Pending Orders</h4>
+                <p>Routes with pending orders requiring next-day delivery</p>
+              </div>
+            </label>
+
+            <label class="analysis-card">
+              <input type="radio" name="analysis" value="failed-orders">
+              <div class="card-content">
+                <div class="card-icon">❌</div>
+                <h4>Failed Orders Analysis</h4>
+                <p>Comprehensive analysis of failed order patterns</p>
+              </div>
+            </label>
+          </div>
+
+          <div id="nashRankingSection" class="form-group" style="display: none; margin-top: 20px;">
+            <label>Store Rankings</label>
+            <div style="display: flex; gap: 15px; flex-wrap: wrap;">
+              <label class="checkbox-label">
+                <input type="radio" name="nashRanking" value="10" checked>
+                Top/Bottom 10
+              </label>
+              <label class="checkbox-label">
+                <input type="radio" name="nashRanking" value="15">
+                Top/Bottom 15
+              </label>
+              <label class="checkbox-label">
+                <input type="radio" name="nashRanking" value="20">
+                Top/Bottom 20
+              </label>
+              <label class="checkbox-label">
+                <input type="radio" name="nashRanking" value="all">
+                All Stores
+              </label>
+            </div>
+          </div>
+
+          <div id="storeInput" class="store-input" style="display: none;">
+            <label for="storeId">Store ID (optional for Multi-Day, required for Driver/Store analysis)</label>
+            <input type="text" id="storeId" placeholder="e.g., 5930">
+          </div>
+
+          <button id="runAnalysis" class="btn btn-success btn-large">
+            🚀 Run Analysis
+          </button>
+        </div>
+      </div>
+
+      <!-- BigQuery Tab -->
+      <div id="bigquery-tab" class="tab-pane">
+        <div class="form-section">
+          <h3>🔵 Fetch Data from BigQuery (Live)</h3>
+
+          <div class="form-group">
+            <label>Time Range</label>
+            <div class="radio-group">
+              <label class="radio-card">
+                <input type="radio" name="bqTimeRange" value="7">
+                <span>Last 7 days</span>
+              </label>
+              <label class="radio-card">
+                <input type="radio" name="bqTimeRange" value="30" checked>
+                <span>Last 30 days</span>
+              </label>
+              <label class="radio-card">
+                <input type="radio" name="bqTimeRange" value="90">
+                <span>Last 90 days</span>
+              </label>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="bqCarrier">Carrier</label>
+            <select id="bqCarrier" class="form-select">
+              <option value="Nash" selected>Nash</option>
+              <option value="NTG">NTG</option>
+              <option value="All">All Carriers</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="bqClient">Client</label>
+            <select id="bqClient" class="form-select">
+              <option value="Walmart" selected>Walmart</option>
+              <option value="Sam's Club">Sam's Club</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="bqType">Delivery Type</label>
+            <select id="bqType" class="form-select">
+              <option value="Unscheduled Delivery" selected>Unscheduled Delivery</option>
+              <option value="Scheduled Delivery">Scheduled Delivery</option>
+              <option value="Express">Express</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="bqOversized">Oversized (OS)</label>
+            <select id="bqOversized" class="form-select">
+              <option value="0" selected>OS = 0 (Non-oversized)</option>
+              <option value="1">OS = 1 (Oversized)</option>
+              <option value="all">All</option>
+            </select>
+          </div>
+
+          <div style="display: flex; gap: 10px; margin-top: 1rem;">
+            <button id="fetchBigQuery" class="btn btn-primary btn-large">
+              📥 Fetch Data
+            </button>
+
+            <button id="downloadBigQueryCSV" class="btn btn-success" style="display: none;">
+              💾 Download CSV
+            </button>
+          </div>
+        </div>
+
+        <!-- Analysis Section for BigQuery Data -->
+        <div id="bigqueryAnalysisSection" class="analysis-section" style="display: none; margin-top: 2rem;">
+          <h3>📊 Walmart BigQuery Analysis</h3>
+
+          <div class="form-group">
+            <label>Store Rankings</label>
+            <div style="display: flex; gap: 15px; flex-wrap: wrap;">
+              <label class="checkbox-label">
+                <input type="radio" name="bqRanking" value="10" checked>
+                Top/Bottom 10
+              </label>
+              <label class="checkbox-label">
+                <input type="radio" name="bqRanking" value="15">
+                Top/Bottom 15
+              </label>
+              <label class="checkbox-label">
+                <input type="radio" name="bqRanking" value="20">
+                Top/Bottom 20
+              </label>
+              <label class="checkbox-label">
+                <input type="radio" name="bqRanking" value="all">
+                All Stores
+              </label>
+            </div>
+          </div>
+
+          <button id="runBigQueryAnalysis" class="btn btn-primary" style="margin-top: 1rem;">
+            🔍 Run Analysis
+          </button>
+
+          <p style="color: #888; font-size: 0.9rem; margin-top: 1rem;">
+            Analysis includes: OTD %, Batch Rate %, Volume Metrics, Store Rankings
+          </p>
+        </div>
+      </div>
+
+      <!-- Merge CSV Tab -->
+      <div id="merge-tab" class="tab-pane">
+        <div class="form-section">
+          <h3>🔀 Merge Multiple CSV Files</h3>
+          
+          <div class="upload-area" id="mergeUploadArea">
+            <div class="upload-icon">📁</div>
+            <h4>Upload Multiple CSV Files</h4>
+            <p>Select 2 or more files to merge</p>
+            <input type="file" id="mergeFiles" accept=".csv" multiple hidden>
+            <button class="btn btn-primary" onclick="document.getElementById('mergeFiles').click()">
+              Choose Files
+            </button>
+          </div>
+
+          <div id="filesList" class="files-list"></div>
+
+          <div class="form-group">
+            <label class="checkbox-label">
+              <input type="checkbox" id="removeDuplicates" checked>
+              <span>Remove duplicate rows</span>
+            </label>
+          </div>
+
+          <button id="mergeFilesBtn" class="btn btn-success btn-large" disabled>
+            🔀 Merge Files
+          </button>
+
+          <button id="downloadMergedCSV" class="btn btn-success" style="display: none; margin-left: 10px;">
+            💾 Download Merged CSV
+          </button>
+        </div>
+
+        <!-- Analysis Section for Merged Data -->
+        <div id="mergeAnalysisSection" class="analysis-section" style="display: none; margin-top: 2rem;">
+          <h3>📊 Analyze Merged Data</h3>
+          <div class="analysis-grid">
+            <label class="analysis-card">
+              <input type="radio" name="mergeAnalysis" value="store-metrics" checked>
+              <div class="card-content">
+                <div class="card-icon">🏪</div>
+                <h4>Store Metrics</h4>
+                <p>Performance breakdown by store</p>
+              </div>
+            </label>
+
+            <label class="analysis-card">
+              <input type="radio" name="mergeAnalysis" value="store-analysis">
+              <div class="card-content">
+                <div class="card-icon">🏬</div>
+                <h4>Store Analysis</h4>
+                <p>Day-by-day breakdown for a store</p>
+              </div>
+            </label>
+
+            <label class="analysis-card">
+              <input type="radio" name="mergeAnalysis" value="multiday">
+              <div class="card-content">
+                <div class="card-icon">📅</div>
+                <h4>Multi-Day Routes</h4>
+                <p>Routes spanning multiple days</p>
+              </div>
+            </label>
+          </div>
+
+          <div id="mergeStoreInput" class="store-input" style="display: none; margin-top: 1rem;">
+            <label for="mergeStoreId">Store ID (required for Store/Multi-Day analysis)</label>
+            <input type="text" id="mergeStoreId" placeholder="e.g., 5930">
+          </div>
+
+          <button id="runMergeAnalysis" class="btn btn-success btn-large" style="margin-top: 1rem;">
+            🚀 Run Analysis
+          </button>
+        </div>
+      </div>
+
+    </main>
+
+    <!-- Loading Overlay -->
+    <div id="loadingOverlay" class="loading-overlay">
+      <div class="loading-content">
+        <div class="spinner"></div>
+        <p id="loadingText">Processing...</p>
+      </div>
+    </div>
+
+    <!-- Results Section -->
+    <section id="resultsSection" class="results-section" style="display: none;">
+      <div class="results-header">
+        <h2>📊 Analysis Results</h2>
+        <button id="closeResults" class="btn btn-secondary">Close</button>
+      </div>
+
+      <!-- Quick Stats Cards -->
+      <div id="statsCards" class="stats-grid"></div>
+
+      <!-- Charts -->
+      <div id="chartsSection" class="charts-section"></div>
+
+      <!-- Detailed Results -->
+      <div class="results-content">
+        <div class="results-tabs">
+          <button class="results-tab-btn active" data-results-tab="summary">Summary</button>
+          <button class="results-tab-btn" data-results-tab="detailed">Detailed Report</button>
+          <button class="results-tab-btn" data-results-tab="raw">Raw Data</button>
+        </div>
+
+        <div class="results-tab-content">
+          <div id="summary-tab" class="results-tab-pane active">
+            <pre id="summaryText" class="report-text"></pre>
+          </div>
+          <div id="detailed-tab" class="results-tab-pane">
+            <pre id="detailedText" class="report-text"></pre>
+          </div>
+          <div id="raw-tab" class="results-tab-pane">
+            <pre id="rawJson" class="report-text"></pre>
+          </div>
+        </div>
+      </div>
+
+      <div class="results-actions">
+        <button id="downloadReport" class="btn btn-primary">📥 Download Report (TXT)</button>
+        <button id="downloadCsv" class="btn btn-success">📥 Download CSV</button>
+        <button id="downloadJson" class="btn btn-secondary">📥 Download JSON</button>
+      </div>
+    </section>
+  </div>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <p>Built with 🐶 by HR (Code Puppy) • Walmart Global Tech</p>
+  </footer>
+
+  <script src="/js/app.js"></script>
+</body>
+</html>

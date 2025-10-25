@@ -1,0 +1,1 @@
+{"version":3,"file":"tableau-fetcher.d.ts","sourceRoot":"","sources":["../src/tableau-fetcher.ts"],"names":[],"mappings":";AAKA,UAAU,YAAY;IACpB,MAAM,CAAC,EAAE,MAAM,CAAC;IAChB,SAAS,CAAC,EAAE,MAAM,CAAC;IACnB,OAAO,CAAC,EAAE,MAAM,CAAC;IACjB,KAAK,CAAC,EAAE,MAAM,CAAC;IACf,IAAI,CAAC,EAAE,MAAM,CAAC;CACf;AAED,wBAAsB,gBAAgB,CAAC,OAAO,GAAE,YAAiB,GAAG,OAAO,CAAC,MAAM,CAAC,CAoDlF"}
