@@ -114,7 +114,7 @@ function initializeAnalysis() {
   analysisRadios.forEach(radio => {
     radio.addEventListener('change', (e) => {
       state.analysisType = e.target.value;
-      const requiresStore = ['driver-store', 'multiday'].includes(e.target.value);
+      const requiresStore = ['driver-store', 'multiday', 'store-analysis'].includes(e.target.value);
       storeInput.style.display = requiresStore ? 'block' : 'none';
     });
   });

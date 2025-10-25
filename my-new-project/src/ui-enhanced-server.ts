@@ -193,8 +193,28 @@ function runPythonAnalysis(analysisType: string, csvPath: string, storeId?: stri
         scriptPath = './scripts/analysis/driver_store_analysis.py';
         args = storeId ? [storeId] : [];
         break;
+      case 'multiday':
+        scriptPath = './scripts/analysis/multiday_route_analysis.py';
+        args = storeId ? [storeId] : [];
+        break;
+      case 'time-breakdown':
+        scriptPath = './scripts/analysis/detailed_time_analysis.py';
+        args = [];
+        break;
       case 'returns':
         scriptPath = './scripts/analysis/returns_breakdown.py';
+        args = [];
+        break;
+      case 'store-analysis':
+        scriptPath = './scripts/analysis/store_specific_analysis.py';
+        args = storeId ? [storeId] : [];
+        break;
+      case 'pending-orders':
+        scriptPath = './scripts/analysis/pending_orders_analysis.py';
+        args = [];
+        break;
+      case 'failed-orders':
+        scriptPath = './scripts/analysis/route_analyzer.py'; // This has failed orders analysis
         args = [];
         break;
       default:
