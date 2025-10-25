@@ -40,6 +40,17 @@ const upload = multer({ storage });
 // Middleware
 app.use(express.json());
 
+// CORS headers for all routes
+app.use((req, res, next) => {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  if (req.method === 'OPTIONS') {
+    return res.sendStatus(200);
+  }
+  next();
+});
+
 // Serve static files from public directory (relative to BASE_DIR)
 const publicPath = join(BASE_DIR, 'public');
 console.log('📁 Serving static files from:', publicPath);
@@ -148,7 +159,16 @@ app.get('/api/bigquery-fetch', async (req, res) => {
 
     console.log('Fetching from BigQuery:', pythonPath, args);
 
-    const result = await runPythonScript(args);
+    try {
+      const result = await runPythonScript(args);
+    } catch (scriptError: any) {
+      // Check if it's an authentication error
+      const errorMsg = scriptError.message || '';
+      if (errorMsg.includes('gcloud auth') || errorMsg.includes('credentials') || errorMsg.includes('authentication')) {
+        throw new Error('BigQuery authentication not configured. Please contact your administrator to set up Google Cloud credentials.');
+      }
+      throw scriptError;
+    }
 
     // Check if file was created
     if (existsSync(outputPath)) {
