@@ -34,7 +34,7 @@ services:
     # Disk storage for uploads (temporary files)
     disk:
       name: uploads
-      mountPath: /opt/render/project/src/my-new-project/uploads
+      mountPath: /opt/render/project/src/uploads
       sizeGB: 1
 
     # Auto-deploy on push to main
