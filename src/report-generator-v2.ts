@@ -61,8 +61,8 @@ function generateReturnsReport(data: any): { report: string; summary: string } {
   summary += `${'-'.repeat(60)}\n`;
   summary += `Total Routes with Returns: ${patterns.total_routes_with_returns || 0}\n`;
   summary += `Total Orders: ${patterns.total_orders || 0}\n`;
-  summary += `Total Returns: ${patterns.total_return_orders || 0}\n`;
-  summary += `Overall Return Rate: ${safeFixed(patterns.overall_return_rate * 100, 2)}%\n`;
+  summary += `Total Returns: ${patterns.total_returns || 0}\n`;
+  summary += `Overall Return Rate: ${safeFixed(patterns.avg_return_rate, 2)}%\n`;
 
   let report = summary + '\n';
   report += '='.repeat(60) + '\n\n';
@@ -73,7 +73,7 @@ function generateReturnsReport(data: any): { report: string; summary: string } {
     topRoutes.forEach((route: any, idx: number) => {
       report += `${idx + 1}. Store ${route.store_id} - ${route.driver} (${route.carrier})\n`;
       report += `   Date: ${route.date}\n`;
-      report += `   Orders: ${route.total_orders} | Returns: ${route.returned} (${safeFixed(route.return_rate * 100, 1)}%)\n`;
+      report += `   Orders: ${route.total_orders} | Returns: ${route.returned} (${safeFixed(route.return_rate, 1)}%)\n`;
       report += `   Delivered: ${route.delivered} | Pending: ${route.pending}\n\n`;
     });
   } else {
